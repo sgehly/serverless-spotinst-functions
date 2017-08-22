@@ -60,7 +60,7 @@ class SpotinstProvider {
 
 			const authFunc = Spotinst.config.setToken(this._envVars.ACCESS_TOKEN);
 
-			this._client = new Spotinst.Client(authFunc).functionsService;
+			this._client = new Spotinst.Client(authFunc).FunctionsService;
 		}
 
 		return this._client;
