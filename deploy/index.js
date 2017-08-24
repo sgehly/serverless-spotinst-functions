@@ -19,6 +19,7 @@ class SpotinstDeploy {
 
 	setHooks(){
 		this.hooks = {
+			'before:deploy:deploy': _ => this.provider.loadLocalParamsFile(),
 			'deploy:deploy': _ => this.deploy()
 		}
 	}
@@ -27,10 +28,13 @@ class SpotinstDeploy {
 		let calls = [];
 
 		this.serverless.cli.consoleLog(`${chalk.yellow.underline('Creating functions:')}`);
-		utils.forEach(this.serverless.service.functions,
-			(config, name) => calls.push(this.create(name, config)));
+		utils.forEach(this.serverless.service.functions, (config, name) => {
+			const created = this.create(name, config);
+			calls.push(created);
+		});
 
-		return Promise.all(calls);
+		return Promise.all(calls)
+			.then( functions => this.saveInLocal(functions));
 	}
 
 	create(name, config){
@@ -43,7 +47,7 @@ class SpotinstDeploy {
 
 	buildFunctionParams(name, config){
 		let [file, handler] = config.handler.split(".");
-		let runtime = this.getRuntime(this.serverless.service.provider.runtime);
+		let runtime = this.getRuntime(config.runtime);
 
 		let params = {
 			name: name,
@@ -54,7 +58,7 @@ class SpotinstDeploy {
 			},
 			code : {
 				handler: handler,
-				source: this.prepareCode(file)
+				source: this.prepareCode(file, config.runtime)
 			}
 		};
 
@@ -62,15 +66,15 @@ class SpotinstDeploy {
 	}
 
 	getRuntime(runtime){
-		if(utils.keys(config.runtimes).indexOf(runtime) == -1)
-			throw new this.serverless.classes.Error(`${runtime} is invalid runtime. The available runtime are ${config.runtimes.join()}`);
+		if(!config.runtimes[runtime])
+			throw new this.serverless.classes.Error(`${runtime} is invalid runtime. The available runtime are ${Object.keys(config.runtimes).join(", ")}`);
 
 		return runtime.replace(/\./g, "");
 	}
 
-	prepareCode(file) {
+	prepareCode(file, runtimeName) {
 		let result = "";
-		let runtime = config.runtimes[this.serverless.service.provider.runtime];
+		let runtime = config.runtimes[runtimeName];
 
 		if( file.slice(-4) == ".zip"){
 			let filePath = `${path.join(this.serverless.config.servicePath, file)}`;
@@ -94,6 +98,17 @@ class SpotinstDeploy {
 		}
 
 		return result;
+	}
+
+	saveInLocal(funcs){
+		let jsonToSave = {};
+		const localFilesPath = path.join(this.serverless.config.servicePath,
+			config.localPrivateFolder,
+			config.functionPrivateFile);
+
+		funcs.forEach(func => jsonToSave[func.name] = func);
+
+		this.serverless.utils.writeFileSync(localFilesPath, jsonToSave);
 	}
 
 	success(res, params){

@@ -6,11 +6,12 @@
  whole provider implementation.
  */
 
-const config = require("./config");
 const SpotinstProvider = require('./provider/spotinstProvider');
+const SpotinstConfigCredentials = require('./configCredentials');
 const SpotinstInfo = require('./info');
 const SpotinstLogs = require('./logs');
 const SpotinstDeploy = require('./deploy');
+const SpotinstRemove = require('./remove');
 
 
 class SpotinstFunctions {
@@ -19,9 +20,11 @@ class SpotinstFunctions {
 		this.options = options;
 
 		this.serverless.pluginManager.addPlugin(SpotinstProvider);
+		this.serverless.pluginManager.addPlugin(SpotinstConfigCredentials);
 		this.serverless.pluginManager.addPlugin(SpotinstInfo);
 		this.serverless.pluginManager.addPlugin(SpotinstLogs);
 		this.serverless.pluginManager.addPlugin(SpotinstDeploy);
+		this.serverless.pluginManager.addPlugin(SpotinstRemove);
 	}
 }
 

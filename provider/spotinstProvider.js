@@ -1,7 +1,9 @@
 'use strict';
 
+const path = require('path');
 const Spotinst = require('spotinst-sdk-nodejs');
 const config = require('../config');
+const YAML = require('js-yaml');
 
 class SpotinstProvider {
 	constructor (serverless) {
@@ -24,25 +26,40 @@ class SpotinstProvider {
 		});
 	}
 
-	validateParams(){
-		if (!this._envVars.ACCESS_TOKEN) {
-			throw new this._serverless.classes.Error(`Missing 'ACCESS_TOKEN' environment variable`);
+	loadLocalParamsFile(){
+		// locate home directory on user's machine
+		const env = process.env;
+		const home = env.HOME ||
+			env.USERPROFILE ||
+			(env.HOMEPATH ? ((env.HOMEDRIVE || 'C:/') + env.HOMEPATH) : null);
+
+		if (!home) {
+			throw new this.serverless.classes
+				.Error('Can\'t find home directory on your local file system.');
 		}
 
-		if(!this._serverless.service.provider.environment){
+		const credsPath = path.join(home, config.homeProviderFile);
+
+		if(!this._serverless.utils.fileExistsSync(credsPath))
+			throw new this._serverless.classes.Error(`Please run 'serverless config credentials' first`);
+
+		const creds = this._serverless.utils.readFileSync(credsPath);
+		const credsParsed = YAML.load(creds.toString(), { filename: credsPath });
+
+		if(!credsParsed.default.account || !credsParsed.default.token){
+			throw new this._serverless.classes.Error(`Please run 'serverless config credentials' first`);
+		}
+
+		this._defaultParams.accountId = credsParsed.default.account;
+		this._envVars.TOKEN = credsParsed.default.token;
+	}
+
+	validateParams(){
+		if(!this._serverless.service.provider.spotinst.environment){
 			throw new this._serverless.classes.Error(`Please insert environment ID in your serverless.yml`);
 		}
 
-		if(!this._serverless.service.provider.account){
-			throw new this._serverless.classes.Error(`Please insert account ID in your serverless.yml`);
-		}
-
-		if(!this._serverless.service.provider.runtime){
-			throw new this._serverless.classes.Error(`Please insert runtime type in your serverless.yml`);
-		}
-
-		this._defaultParams.environmentId = this._serverless.service.provider.environment;
-		this._defaultParams.accountId = this._serverless.service.provider.account;
+		this._defaultParams.environmentId = this._serverless.service.provider.spotinst.environment;
 	}
 
 	get envVars() {
