@@ -4,13 +4,15 @@ const config = require("../config");
 const chalk = require('chalk');
 const path = require('path');
 const utils = require("lodash");
+const LocalFunctionsMapper = require("../utils/localFunctionsMapper");
 
-class SpotinstRemove {
+class SpotinstRemove extends LocalFunctionsMapper {
 	constructor(serverless, options){
+		super();
+
 		this.serverless = serverless;
 		this.options = options || {};
 		this.provider = this.serverless.getProvider(config.providerName);
-		this._client = this.provider.client;
 		this._localFuncs = {};
 
 		this.setHooks();
@@ -20,7 +22,6 @@ class SpotinstRemove {
 		this.hooks = {
 			'before:remove:remove': _ => this.init(),
 			'remove:remove': _ => this.remove()
-				.then( _ => this.updateLocalFunctions())
 		}
 	}
 
@@ -47,23 +48,8 @@ class SpotinstRemove {
 			calls.push(call);
 		});
 
-		return Promise.all(calls);
-	}
-
-	getLocalFunctions(){
-		const localFilesPath = path.join(this.serverless.config.servicePath,
-			config.localPrivateFolder,
-			config.functionPrivateFile);
-
-		this._localFuncs = this.serverless.utils.readFileSync(localFilesPath);
-	}
-
-	updateLocalFunctions(){
-		const localFilesPath = path.join(this.serverless.config.servicePath,
-			config.localPrivateFolder,
-			config.functionPrivateFile);
-
-		return this.serverless.utils.writeFileSync(localFilesPath, this._localFuncs);
+		return Promise.all(calls)
+			.then( _ => this.updateLocalFunctions());
 	}
 
 	success(res, func){

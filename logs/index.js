@@ -8,7 +8,6 @@ class SpotinstLogs {
 		this.serverless = serverless;
 		this.options = options || {};
 		this.provider = this.serverless.getProvider(config.providerName);
-		this._client = this.provider.client;
 
 		this.setHooks();
 	}

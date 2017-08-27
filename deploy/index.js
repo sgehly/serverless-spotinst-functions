@@ -33,7 +33,7 @@ class SpotinstDeploy {
 	deploy(){
 		let calls = [];
 
-		this.serverless.cli.consoleLog(`${chalk.yellow.underline('Creating functions:')}`);
+		this.serverless.cli.consoleLog(chalk.yellow.underline('Creating functions:'));
 		utils.forEach(this.serverless.service.functions, (config, name) => {
 			const created = this.create(name, config);
 			calls.push(created);
@@ -72,8 +72,9 @@ class SpotinstDeploy {
 	}
 
 	getRuntime(runtime){
-		if(!config.runtimes[runtime])
+		if(!config.runtimes[runtime]){
 			throw new this.serverless.classes.Error(`${runtime} is invalid runtime. The available runtime are ${Object.keys(config.runtimes).join(", ")}`);
+		}
 
 		return runtime.replace(/\./g, "");
 	}
@@ -112,7 +113,6 @@ class SpotinstDeploy {
 			config.localPrivateFolder,
 			config.functionPrivateFile);
 
-		console.log(funcs);
 		funcs.filter(func => func).forEach(func => jsonToSave[func.name] = func);
 
 		this.serverless.utils.writeFileSync(localFilesPath, jsonToSave);

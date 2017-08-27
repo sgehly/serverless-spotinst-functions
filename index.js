@@ -12,6 +12,8 @@ const SpotinstInfo = require('./info');
 const SpotinstLogs = require('./logs');
 const SpotinstDeploy = require('./deploy');
 const SpotinstRemove = require('./remove');
+const SpotinstInvoke = require('./invoke');
+const SpotinstInvokeLocal = require('./invokeLocal');
 
 
 class SpotinstFunctions {
@@ -25,6 +27,8 @@ class SpotinstFunctions {
 		this.serverless.pluginManager.addPlugin(SpotinstLogs);
 		this.serverless.pluginManager.addPlugin(SpotinstDeploy);
 		this.serverless.pluginManager.addPlugin(SpotinstRemove);
+		this.serverless.pluginManager.addPlugin(SpotinstInvoke);
+		this.serverless.pluginManager.addPlugin(SpotinstInvokeLocal);
 	}
 }
 

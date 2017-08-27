@@ -9,5 +9,6 @@ module.exports = {
 	},
 	localPrivateFolder: '.serverless',
 	functionPrivateFile: 'serverless-functions-map.json',
-	homeProviderFile: '.spotinst/credentials'
+	homeProviderFile: '.spotinst/credentials',
+	pythonInvoker: "invoker.py"
 };

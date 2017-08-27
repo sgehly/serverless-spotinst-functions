@@ -4,13 +4,15 @@ const config = require("../config");
 const chalk = require('chalk');
 const path = require('path');
 const utils = require("lodash");
+const LocalFunctionsMapper = require("../utils/localFunctionsMapper");
 
-class SpotinstInfo {
+class SpotinstInfo extends LocalFunctionsMapper {
 	constructor(serverless, options){
+		super();
+
 		this.serverless = serverless;
 		this.options = options || {};
 		this.provider = this.serverless.getProvider(config.providerName);
-		this._client = this.provider.client;
 
 		this.setCommands();
 		this.setHooks();
@@ -50,7 +52,7 @@ class SpotinstInfo {
 	info(){
 		let funcs;
 
-		if(this.options.f){
+		if(this.options.function){
 			funcs = this.getSingleFunction();
 
 		} else {
@@ -63,10 +65,11 @@ class SpotinstInfo {
 	getSingleFunction(){
 		const funcs = this.getLocalFunctions();
 
-		if(!funcs[this.options.f])
+		if(!funcs[this.options.function]){
 			throw new this.serverless.classes.Error(`Function '${this.options.f}' doesn't exist in this service.`);
+		}
 
-		let params = utils.extend({id: funcs[this.options.f].id}, this.provider.defaultParams);
+		let params = utils.extend({id: funcs[this.options.function].id}, this.provider.defaultParams);
 
 		return this._client.read(params);
 	}
@@ -88,14 +91,6 @@ class SpotinstInfo {
 			.then(funcs => funcs.filter(func => func)); // clear false values
 	}
 
-	getLocalFunctions(){
-		const localFilesPath = path.join(this.serverless.config.servicePath,
-			config.localPrivateFolder,
-			config.functionPrivateFile);
-
-		return this.serverless.utils.readFileSync(localFilesPath);
-	}
-
 	logFunctions(funcs){
 		let messages = [];
 
@@ -106,8 +101,9 @@ class SpotinstInfo {
 			messages.push(`${chalk.yellow('functions:')}`);
 			funcs.forEach(func => messages.push(this.logFunction(func)));
 
-		} else
+		} else {
 			messages.push(`${chalk.yellow('None')}`);
+		}
 
 		this.serverless.cli.consoleLog(messages.join("\n"));
 	}
