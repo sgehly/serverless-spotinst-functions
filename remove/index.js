@@ -18,10 +18,17 @@ class SpotinstRemove {
 
 	setHooks(){
 		this.hooks = {
-			'before:remove:remove': _ => this.provider.loadLocalParamsFile(),
+			'before:remove:remove': _ => this.init(),
 			'remove:remove': _ => this.remove()
 				.then( _ => this.updateLocalFunctions())
 		}
+	}
+
+	init(){
+		this.provider.loadLocalParamsFile();
+		this._client = this.provider.client;
+
+		return Promise.resolve();
 	}
 
 	remove(){

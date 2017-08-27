@@ -12,16 +12,22 @@ class SpotinstDeploy {
 		this.serverless = serverless;
 		this.options = options || {};
 		this.provider = this.serverless.getProvider(config.providerName);
-		this._client = this.provider.client;
 
 		this.setHooks();
 	}
 
 	setHooks(){
 		this.hooks = {
-			'before:deploy:deploy': _ => this.provider.loadLocalParamsFile(),
+			'before:deploy:deploy': _ => this.init(),
 			'deploy:deploy': _ => this.deploy()
 		}
+	}
+
+	init(){
+		this.provider.loadLocalParamsFile();
+		this._client = this.provider.client;
+
+		return Promise.resolve();
 	}
 
 	deploy(){
@@ -106,7 +112,8 @@ class SpotinstDeploy {
 			config.localPrivateFolder,
 			config.functionPrivateFile);
 
-		funcs.forEach(func => jsonToSave[func.name] = func);
+		console.log(funcs);
+		funcs.filter(func => func).forEach(func => jsonToSave[func.name] = func);
 
 		this.serverless.utils.writeFileSync(localFilesPath, jsonToSave);
 	}

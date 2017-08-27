@@ -35,9 +35,16 @@ class SpotinstInfo {
 
 	setHooks(){
 		this.hooks = {
-			'before:info:info': _ => this.provider.loadLocalParamsFile(),
+			'before:info:info': _ => this.init(),
 			'info:info': _ => this.info()
 		}
+	}
+
+	init(){
+		this.provider.loadLocalParamsFile();
+		this._client = this.provider.client;
+
+		return Promise.resolve();
 	}
 
 	info(){

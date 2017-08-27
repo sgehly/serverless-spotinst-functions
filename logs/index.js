@@ -15,9 +15,16 @@ class SpotinstLogs {
 
 	setHooks(){
 		this.hooks = {
-			'before:logs:logs': _ => this.provider.loadLocalParamsFile(),
+			'before:logs:logs': _ => this.init(),
 			'logs:logs': _ => this.logs()
 		}
+	}
+
+	init(){
+		this.provider.loadLocalParamsFile();
+		this._client = this.provider.client;
+
+		return Promise.resolve();
 	}
 
 	logs(){
