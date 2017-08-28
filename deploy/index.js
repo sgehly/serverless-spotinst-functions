@@ -52,9 +52,9 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		return Promise.all(calls)
 			.then( functions => {
 				if(this.options.function){
-					this.saveInLocal(functions);
-				} else {
 					this.saveInLocal(functions, localFuncs);
+				} else {
+					this.saveInLocal(functions);
 				}
 			});
 	}
