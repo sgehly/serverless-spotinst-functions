@@ -51,7 +51,7 @@ class SpotinstProvider {
 		}
 
 		this._defaultParams.accountId = credsParsed.default.account;
-		this._envVars.TOKEN = credsParsed.default.token;
+		this._envVars.SPOTINST_TOKEN = credsParsed.default.token;
 	}
 
 	validateParams(){
@@ -75,7 +75,7 @@ class SpotinstProvider {
 			this.getProps();
 			this.validateParams();
 
-			const authFunc = Spotinst.config.setToken(this._envVars.TOKEN);
+			const authFunc = Spotinst.config.setToken(this._envVars.SPOTINST_TOKEN);
 
 			this._client = new Spotinst.Client(authFunc).FunctionsService;
 		}

@@ -1,6 +1,6 @@
 module.exports = {
 	providerName: 'spotinst',
-	envParams : ['ACCESS_TOKEN'],
+	envParams : ['SPOTINST_TOKEN'],
 	runtimes: {
 		"java8" : "",
 		"nodejs4.8": { rootFile : "index.js", ext: "js" },

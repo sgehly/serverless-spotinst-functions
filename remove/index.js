@@ -49,7 +49,7 @@ class SpotinstRemove extends LocalFunctionsMapper {
 		});
 
 		return Promise.all(calls)
-			.then( _ => this.updateLocalFunctions());
+			.then( _ => this.updateLocalFunctions(this._localFuncs));
 	}
 
 	success(res, func){

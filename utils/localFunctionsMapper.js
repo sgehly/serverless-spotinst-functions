@@ -11,15 +11,20 @@ class LocalFunctionsMapper {
 			config.localPrivateFolder,
 			config.functionPrivateFile);
 
-		return this.serverless.utils.readFileSync(localFilesPath);
+		if (this.serverless.utils.fileExistsSync(localFilesPath)) {
+			return this.serverless.utils.readFileSync(localFilesPath);
+
+		} else {
+			return {};
+		}
 	}
 
-	updateLocalFunctions(){
+	updateLocalFunctions(funcs){
 		const localFilesPath = path.join(this.serverless.config.servicePath,
 			config.localPrivateFolder,
 			config.functionPrivateFile);
 
-		return this.serverless.utils.writeFileSync(localFilesPath, this._localFuncs);
+		return this.serverless.utils.writeFileSync(localFilesPath, funcs);
 	}
 }
 

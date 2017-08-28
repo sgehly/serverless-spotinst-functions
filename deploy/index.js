@@ -6,9 +6,12 @@ const chalk = require('chalk');
 const fs = require("fs");
 const path = require("path");
 const AdmZip = require("adm-zip");
+const LocalFunctionsMapper = require("../utils/localFunctionsMapper");
 
-class SpotinstDeploy {
+class SpotinstDeploy extends LocalFunctionsMapper {
 	constructor(serverless, options){
+		super();
+
 		this.serverless = serverless;
 		this.options = options || {};
 		this.provider = this.serverless.getProvider(config.providerName);
@@ -30,17 +33,30 @@ class SpotinstDeploy {
 		return Promise.resolve();
 	}
 
-	deploy(){
-		let calls = [];
+	deploy(funcs){
+		let calls = [],
+			localFuncs = this.getLocalFunctions(),
+			serviceFuncs = funcs || utils.cloneDeep(this.serverless.service.functions);
 
-		this.serverless.cli.consoleLog(chalk.yellow.underline('Creating functions:'));
-		utils.forEach(this.serverless.service.functions, (config, name) => {
-			const created = this.create(name, config);
-			calls.push(created);
+		this.serverless.cli.consoleLog(chalk.yellow.underline('Deploy functions:'));
+
+		utils.forEach(serviceFuncs, (config, name) => {
+			if(localFuncs[name]){
+				calls.push(this.update(name, config, localFuncs[name]));
+
+			} else {
+				calls.push(this.create(name, config));
+			}
 		});
 
 		return Promise.all(calls)
-			.then( functions => this.saveInLocal(functions));
+			.then( functions => {
+				if(this.options.function){
+					this.saveInLocal(functions);
+				} else {
+					this.saveInLocal(functions, localFuncs);
+				}
+			});
 	}
 
 	create(name, config){
@@ -49,6 +65,24 @@ class SpotinstDeploy {
 		return this._client.create({function: params})
 			.then(res => this.success(res, params))
 			.catch(err => this.error(err, params));
+	}
+
+	update(name, config, localFunc){
+		config.id = localFunc.id;
+		let params = this.buildFunctionParams(name, config);
+
+		return this._client.update({function: params})
+			.then(res => this.success(res, params, true))
+			// The update call does not return the edited func. so we will get it
+			.then( _ => this.getEditedFunc(config.id))
+			.catch(err => this.error(err, params));
+	}
+
+
+	getEditedFunc(id){
+		let params = utils.extend({id}, this.provider.defaultParams);
+		return this._client.read(params)
+			.then( items => items[0]);
 	}
 
 	buildFunctionParams(name, config){
@@ -68,12 +102,18 @@ class SpotinstDeploy {
 			}
 		};
 
+		if(config.id){
+			params.id = config.id;
+		}
+
 		return utils.extend({}, this.provider.defaultParams, params);
 	}
 
 	getRuntime(runtime){
 		if(!config.runtimes[runtime]){
-			throw new this.serverless.classes.Error(`${runtime} is invalid runtime. The available runtime are ${Object.keys(config.runtimes).join(", ")}`);
+			throw new this.serverless.classes.Error(
+				`${runtime} is invalid runtime. The available runtime are ${Object.keys(config.runtimes).join(", ")}`
+			);
 		}
 
 		return runtime.replace(/\./g, "");
@@ -107,20 +147,15 @@ class SpotinstDeploy {
 		return result;
 	}
 
-	saveInLocal(funcs){
-		let jsonToSave = {};
-		const localFilesPath = path.join(this.serverless.config.servicePath,
-			config.localPrivateFolder,
-			config.functionPrivateFile);
-
+	saveInLocal(funcs, localFuncs){
+		let jsonToSave = localFuncs || {};
 		funcs.filter(func => func).forEach(func => jsonToSave[func.name] = func);
 
-		this.serverless.utils.writeFileSync(localFilesPath, jsonToSave);
+		this.updateLocalFunctions(jsonToSave);
 	}
 
-	success(res, params){
-		this.serverless.cli.consoleLog(`${params.name}: success`);
-
+	success(res, params, updated){
+		this.serverless.cli.consoleLog(`${params.name}: ${updated ? 'updated' : 'created'}`);
 		return res;
 	}
 

@@ -36,7 +36,7 @@ class SpotinstInvoke extends Invoke {
 				const options = {
 					url: func[0].url,
 					headers: {
-						'Authorization': `Bearer ${this.provider.envVars.TOKEN}`
+						'Authorization': `Bearer ${this.provider.envVars.SPOTINST_TOKEN}`
 					},
 					body: params,
 					method: "POST"

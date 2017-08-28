@@ -112,8 +112,8 @@ class SpotinstInfo extends LocalFunctionsMapper {
 		let message = [];
 
 		message.push(`  ${func.name}`);
+		message.push(`    id: ${func.id}`);
 		message.push(`    runtime: ${func.runtime}`);
-
 		message.push(`    memory: ${func.limits.memory}`);
 		message.push(`    timeout: ${func.limits.timeout}`);
 		message.push(`    version: ${func.latestVersion}`);
