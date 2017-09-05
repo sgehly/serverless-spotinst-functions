@@ -6,6 +6,7 @@ const chalk = require('chalk');
 const fs = require("fs");
 const path = require("path");
 const AdmZip = require("adm-zip");
+const Info = require("../info/index");
 const LocalFunctionsMapper = require("../utils/localFunctionsMapper");
 
 class SpotinstDeploy extends LocalFunctionsMapper {
@@ -15,6 +16,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		this.serverless = serverless;
 		this.options = options || {};
 		this.provider = this.serverless.getProvider(config.providerName);
+		this.info = new Info(serverless, options);
 
 		this.setHooks();
 	}
@@ -23,6 +25,8 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		this.hooks = {
 			'before:deploy:deploy': _ => this.init(),
 			'deploy:deploy': _ => this.deploy()
+				.then(_ => this.info.init())
+				.then(_ => this.info.info())
 		}
 	}
 
@@ -138,7 +142,8 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 			zip.addLocalFile(filePath, null, rootFile);
 
 			//For later use. zip the current folder and upload.
-			// zip.addLocalFolder(this.serverless.config.servicePath, null, path => path != runtime.rootFile);
+			// console.log("here");
+			// zip.addLocalFolder(this.serverless.config.servicePath);
 
 			// convert binary data to base64 encoded string
 			result = new Buffer(zip.toBuffer()).toString('base64');
