@@ -25,8 +25,6 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		this.hooks = {
 			'before:deploy:deploy': _ => this.init(),
 			'deploy:deploy': _ => this.deploy()
-				.then(_ => this.info.init())
-				.then(_ => this.info.info())
 		}
 	}
 
@@ -125,29 +123,28 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 
 	prepareCode(file, runtimeName) {
 		let result = "";
-		let runtime = config.runtimes[runtimeName];
+		let filePath = `${path.join(this.serverless.config.servicePath, config.localPrivateFolder, this.serverless.service.service)}.zip`;
+		let bitmap = fs.readFileSync(filePath);
 
-		if( file.slice(-4) == ".zip"){
-			let filePath = `${path.join(this.serverless.config.servicePath, file)}`;
-			let bitmap = fs.readFileSync(filePath);
+		// convert binary data to base64 encoded string
+		result = new Buffer(bitmap).toString('base64');
 
-			// convert binary data to base64 encoded string
-			result = new Buffer(bitmap).toString('base64');
 
-		} else {
-			let zip = AdmZip();
-			let rootFile = runtime.rootFile;
-			let filePath = `${path.join(this.serverless.config.servicePath, file)}.${runtime.ext}`;
-
-			zip.addLocalFile(filePath, null, rootFile);
-
-			//For later use. zip the current folder and upload.
-			// console.log("here");
-			// zip.addLocalFolder(this.serverless.config.servicePath);
-
-			// convert binary data to base64 encoded string
-			result = new Buffer(zip.toBuffer()).toString('base64');
-		}
+		// let runtime = config.runtimes[runtimeName];
+		//
+		// let zip = AdmZip();
+		// let rootFile = runtime.rootFile;
+		// let filePath = `${path.join(this.serverless.config.servicePath, file)}.${runtime.ext}`;
+		//
+		// zip.addLocalFile(filePath, null, rootFile);
+		//
+		// //For later use. zip the current folder and upload.
+		// console.log("here");
+		//
+		// // zip.addLocalFolder(this.serverless.config.servicePath);
+		//
+		// // convert binary data to base64 encoded string
+		// result = new Buffer(zip.toBuffer()).toString('base64');
 
 		return result;
 	}
