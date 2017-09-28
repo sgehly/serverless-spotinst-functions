@@ -53,6 +53,10 @@ class SpotinstInvokeLocal extends Invoke {
 			python.on('close', () => resolve());
 		});
 	}
+
+	invokeRuby(name, func){
+
+	}
 }
 
 module.exports = SpotinstInvokeLocal;

@@ -55,7 +55,7 @@ class SpotinstProvider {
 	}
 
 	validateParams(){
-		if(!this._serverless.service.provider.spotinst.environment){
+		if(!this._serverless.service.provider.spotinst || !this._serverless.service.provider.spotinst.environment){
 			throw new this._serverless.classes.Error(`Please insert environment ID in your serverless.yml`);
 		}
 

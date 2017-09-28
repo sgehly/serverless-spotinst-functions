@@ -30,11 +30,24 @@ class Invoke extends LocalFunctionsMapper {
 		this.serverless.cli.consoleLog(chalk.yellow.underline(`Invoking function '${this.options.function}':`));
 
 		this.getParams();
-		if(config.runtimes[func.runtime].ext == "js"){
-			res = this.invokeNode(this.options.function, func);
+		switch(config.runtimes[func.runtime].ext){
+			case "js":
+				res = this.invokeNode(this.options.function, func);
+				break;
 
-		} else if(config.runtimes[func.runtime].ext == "py"){
-			res = this.invokePython(this.options.function, func);
+			case "py":
+				res = this.invokePython(this.options.function, func);
+				break;
+
+			case "rb":
+				res = this.invokeRuby(this.options.function, func);
+				break;
+
+			default:
+				throw new this.serverless.classes.Error(
+					`${func.runtime} is invalid runtime. The available runtimes are ${Object.keys(config.runtimes).join(", ")}`
+				);
+				break;
 		}
 
 		return Promise.resolve(res);
@@ -56,7 +69,7 @@ class Invoke extends LocalFunctionsMapper {
 			this.options.data = this.serverless.utils.readFileSync(absolutePath);
 		}
 
-		if(typeof this.options.data == "string"){
+		if(typeof this.options.data === "string"){
 			try {
 				this.options.data = JSON.parse(this.options.data);
 			} catch(e){
@@ -70,6 +83,7 @@ class Invoke extends LocalFunctionsMapper {
 	setHooks() {console.error("Implement 'setHooks' method")}
 	invokeNode() {console.error("Implement 'invokeNode' method")}
 	invokePython() {console.error("Implement 'invokePython' method")}
+	invokeRuby() {console.error("Implement 'invokeRuby' method")}
 }
 
 module.exports = Invoke;

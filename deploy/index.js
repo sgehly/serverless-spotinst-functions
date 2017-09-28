@@ -70,11 +70,17 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 	}
 
 	update(name, config, localFunc){
+		if(this.provider.defaultParams.environmentId !== localFunc.environmentId)
+			throw new this.serverless.classes.Error(
+				`'${name}' has already been deployed to environment '${localFunc.environmentId}'. This cannot be changed (sent: '${this.provider.defaultParams.environmentId}')`
+			);
+
 		config.id = localFunc.id;
 		let params = this.buildFunctionParams(name, config);
 
 		return this._client.update({function: params})
 			.then(res => this.success(res, params, true))
+
 			// The update call does not return the edited func. so we will get it
 			.then( _ => this.getEditedFunc(config.id))
 			.catch(err => this.error(err, params));
@@ -94,6 +100,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		let params = {
 			name: name,
 			runtime: runtime,
+			access: config.access || "private",
 			limits: {
 				timeout: config.timeout,
 				memory: config.memory,
@@ -114,7 +121,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 	getRuntime(runtime){
 		if(!config.runtimes[runtime]){
 			throw new this.serverless.classes.Error(
-				`${runtime} is invalid runtime. The available runtime are ${Object.keys(config.runtimes).join(", ")}`
+				`${runtime} is invalid runtime. The available runtimes are ${Object.keys(config.runtimes).join(", ")}`
 			);
 		}
 
@@ -122,31 +129,22 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 	}
 
 	prepareCode(file, runtimeName) {
-		let result = "";
-		let filePath = `${path.join(this.serverless.config.servicePath, config.localPrivateFolder, this.serverless.service.service)}.zip`;
-		let bitmap = fs.readFileSync(filePath);
+		let runtime = config.runtimes[runtimeName];
+
+		let zip = AdmZip();
+		let rootFile = runtime.rootFile;
+		let filePath = `${path.join(this.serverless.config.servicePath, file)}.${runtime.ext}`;
+
+		zip.addLocalFile(filePath, null, rootFile);
+
+		zip.addLocalFolder(this.serverless.config.servicePath, null, p => {
+			return 	p !== `${file}.${runtime.ext}` &&
+					p !== config.serverlessConfigFile &&
+					p.indexOf(config.localPrivateFolder) === -1;
+		});
 
 		// convert binary data to base64 encoded string
-		result = new Buffer(bitmap).toString('base64');
-
-
-		// let runtime = config.runtimes[runtimeName];
-		//
-		// let zip = AdmZip();
-		// let rootFile = runtime.rootFile;
-		// let filePath = `${path.join(this.serverless.config.servicePath, file)}.${runtime.ext}`;
-		//
-		// zip.addLocalFile(filePath, null, rootFile);
-		//
-		// //For later use. zip the current folder and upload.
-		// console.log("here");
-		//
-		// // zip.addLocalFolder(this.serverless.config.servicePath);
-		//
-		// // convert binary data to base64 encoded string
-		// result = new Buffer(zip.toBuffer()).toString('base64');
-
-		return result;
+		return new Buffer(zip.toBuffer()).toString('base64');
 	}
 
 	saveInLocal(funcs, localFuncs){
