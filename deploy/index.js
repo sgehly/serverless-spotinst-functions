@@ -138,14 +138,28 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 
 		zip.addLocalFile(filePath, null, rootFile);
 
-		zip.addLocalFolder(this.serverless.config.servicePath, null, p => {
-			return 	p !== `${file}.${runtime.ext}` &&
-					p !== config.serverlessConfigFile &&
-					p.indexOf(config.localPrivateFolder) === -1;
-		});
+		zip.addLocalFolder(this.serverless.config.servicePath, null, p => this.isFileShouldBeInZip(p, file, runtime));
 
 		// convert binary data to base64 encoded string
 		return new Buffer(zip.toBuffer()).toString('base64');
+	}
+
+	isFileShouldBeInZip(path, file, runtime){
+		let retVal = true;
+
+		if(path === `${file}.${runtime.ext}`)
+			retVal = false;
+
+		if(path === config.serverlessConfigFile)
+			retVal = false;
+
+		if(path.indexOf(config.localPrivateFolder) > -1)
+			retVal = false;
+
+		if(path.indexOf("node_modules") > -1 && runtime.ext !== "js")
+			retVal = false;
+
+		return retVal;
 	}
 
 	createCron(res, config, localFunc){
@@ -166,6 +180,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 			if(localFunc.cron && localFunc.cron.id) {
 				cronRequest.id = localFunc.cron.id;
 
+				// Cron has been deleted from config
 				if(!config.cron){
 					call = this.provider.client.SpectrumService.Events.delete(cronRequest)
 						.then(resCron => delete res.cron);
