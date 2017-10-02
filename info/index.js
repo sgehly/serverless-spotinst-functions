@@ -46,7 +46,7 @@ class SpotinstInfo extends LocalFunctionsMapper {
 
 	init(){
 		this.provider.loadLocalParamsFile();
-		this._client = this.provider.client;
+		this._client = this.provider.client.FunctionsService;
 
 		return Promise.resolve();
 	}
@@ -61,7 +61,9 @@ class SpotinstInfo extends LocalFunctionsMapper {
 			funcs = this.getAllFunctions();
 		}
 
-		return funcs.then(items => this.logFunctions(items));
+		return funcs
+			.then(items => this.getCronJobs(items))
+			.then(items => this.logFunctions(items));
 	}
 
 	getSingleFunction(){
@@ -93,6 +95,20 @@ class SpotinstInfo extends LocalFunctionsMapper {
 			.then(funcs => funcs.filter(func => func)); // clear false values
 	}
 
+	getCronJobs(items){
+		let calls = [];
+
+		items.forEach(func => {
+			const params = utils.extend({resourceId: func.id, action: "INVOKE_FUNCTION"}, this.provider.defaultParams);
+			let call = this.provider.client.SpectrumService.Events.read(params)
+				.then(res => func.cron = res[0]);
+
+			calls.push(call);
+		});
+
+		return Promise.all(calls).then(_ => items);
+	}
+
 	logFunctions(funcs){
 		let messages = [];
 
@@ -121,6 +137,12 @@ class SpotinstInfo extends LocalFunctionsMapper {
 		message.push(`    version: ${func.latestVersion}`);
 		message.push(`    url: ${func.url}`);
 		message.push(`    created_at: ${func.createdAt}`);
+
+		if(func.cron){
+			message.push(`    cron:`);
+			message.push(`      active: ${func.cron.isEnabled}`);
+			message.push(`      value: ${func.cron.cronExpression}`);
+		}
 
 		return message.join("\n");
 	}

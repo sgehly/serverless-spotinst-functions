@@ -18,7 +18,7 @@ class Invoke extends LocalFunctionsMapper {
 
 	init(){
 		this.provider.loadLocalParamsFile();
-		this._client = this.provider.client;
+		this._client = this.provider.client.FunctionsService;
 
 		return Promise.resolve();
 	}
