@@ -80,26 +80,24 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		config.id = localFunc.id;
 		let params = this.buildFunctionParams(name, config);
 
-		return this.getEditedFunc(config.id)
+		return this.getFunction(config.id)
 			.then(func => {
-				if(localFunc.latestVersion == func.latestVersion){
+				if(localFunc.latestVersion === func.latestVersion){
 					return this._client.update({function: params})
-            .then(_ => this.createCron({}, config, localFunc))
+            			.then(_ => this.createCron({}, config, localFunc))
 						.then(res => this.success(res, params, true))
 						// The update call does not return the edited func. so we will get it
-						.then(res => this.getEditedFunc(config.id, res))
+						.then(res => this.getFunction(config.id, res))
 						.catch(err => this.error(err, params));			
 				} else{
 					throw new this.serverless.classes.Error(
-						`Version Error: '${name}' Function has a version '${localFunc.latestVersion}' which does not match the submitted version '${fetchedVersion}'. Please go to your Spotinst console for more information.`
+						`Version Error: '${name}' Function has a version '${localFunc.latestVersion}' which does not match the submitted version '${func.latestVersion}'. Please go to your Spotinst console for more information.`
 					);
 				}
-			})
-
-			.catch(err => this.error(err, params));
+			});
 	}
   
-	getEditedFunc(id, extraParams){
+	getFunction(id, extraParams){
 		let params = utils.extend({id}, this.provider.defaultParams);
 		return this._client.read(params)
 			.then( items => utils.extend(items[0], extraParams || {}));
