@@ -27,14 +27,14 @@ class SpotinstRemove extends LocalFunctionsMapper {
 
 	init(){
 		this.provider.loadLocalParamsFile();
-		this._client = this.provider.client;
+		this._client = this.provider.client.FunctionsService;
 
 		return Promise.resolve();
 	}
 
 	remove(){
 		let calls = [];
-		this.getLocalFunctions();
+		this._localFuncs = this.getLocalFunctions();
 
 		this.serverless.cli.consoleLog(`${chalk.yellow.underline('Removing functions:')}`);
 
