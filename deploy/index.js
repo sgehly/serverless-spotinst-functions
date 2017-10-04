@@ -141,12 +141,13 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		zip.addLocalFolder(this.serverless.config.servicePath, null, p => this.isFileShouldBeInZip(p, file, runtime));
 
 		// convert binary data to base64 encoded string
-		return new Buffer(zip.toBuffer()).toString('base64');
+		return zip.toBuffer().toString('base64');
 	}
 
 	isFileShouldBeInZip(path, file, runtime){
 		let retVal = true;
 
+		// exclude the root file. we've already included him
 		if(path === `${file}.${runtime.ext}`)
 			retVal = false;
 
@@ -156,6 +157,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		if(path.indexOf(config.localPrivateFolder) > -1)
 			retVal = false;
 
+		// exclude node_modules on node
 		if(path.indexOf("node_modules") > -1 && runtime.ext !== "js")
 			retVal = false;
 
