@@ -18,6 +18,10 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		this.provider = this.serverless.getProvider(config.providerName);
 		this.info = new Info(serverless, options);
 
+		let plugins = this.serverless.pluginManager.getPlugins();
+
+		this.zipService = plugins.filter(plugin => plugin.zipService)[0];
+
 		this.setHooks();
 	}
 
@@ -32,7 +36,11 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		this.provider.loadLocalParamsFile();
 		this._client = this.provider.client.FunctionsService;
 
-		return Promise.resolve();
+		return this.zipService.excludeDevDependencies({exclude: [], include: []}).then(res => {
+			return this.zipService.resolveFilePathsFromPatterns(res).then(res => {
+				this.toExclude = res;
+			});
+		});
 	}
 
 	deploy(funcs){
@@ -166,9 +174,15 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		if(path.indexOf(config.localPrivateFolder) > -1)
 			retVal = false;
 
-		// exclude node_modules on node
-		if(path.indexOf("node_modules") > -1 && runtime.ext !== "js")
+		if(this.toExclude.indexOf(path) > -1)
 			retVal = false;
+
+		if(path.indexOf("serverless-spotinst-functions") > -1)
+			retVal = false;
+
+		// exclude node_modules on node
+		// if(path.indexOf("node_modules") > -1 && runtime.ext !== "js")
+		// 	retVal = false;
 
 		return retVal;
 	}
