@@ -124,7 +124,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 				memory: config.memory,
 			},
 			code : {
-				handler: handler,
+				handler: config.handler,
 				source: this.prepareCode(file, config.runtime)
 			}
 		};
@@ -147,18 +147,24 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 	}
 
 	prepareCode(file, runtimeName) {
-		let runtime = config.runtimes[runtimeName];
-
-		let zip = AdmZip();
-		let rootFile = runtime.rootFile;
-		let filePath = `${path.join(this.serverless.config.servicePath, file)}.${runtime.ext}`;
-
-		zip.addLocalFile(filePath, null, rootFile);
-
-		zip.addLocalFolder(this.serverless.config.servicePath, null, p => this.isFileShouldBeInZip(p, file, runtime));
+		let filePath = `${path.join(this.serverless.config.servicePath, config.localPrivateFolder, this.serverless.service.service)}.zip`;
+		let bitmap = fs.readFileSync(filePath);
 
 		// convert binary data to base64 encoded string
-		return zip.toBuffer().toString('base64');
+		return new Buffer(bitmap).toString('base64');
+
+		// let runtime = config.runtimes[runtimeName];
+		//
+		// let zip = AdmZip();
+		// let rootFile = runtime.rootFile;
+		// let filePath = `${path.join(this.serverless.config.servicePath, file)}.${runtime.ext}`;
+		//
+		// zip.addLocalFile(filePath, null, rootFile);
+		//
+		// zip.addLocalFolder(this.serverless.config.servicePath, null, p => this.isFileShouldBeInZip(p, file, runtime));
+		//
+		// // convert binary data to base64 encoded string
+		// return zip.toBuffer().toString('base64');
 	}
 
 	isFileShouldBeInZip(path, file, runtime){
