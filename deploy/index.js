@@ -18,6 +18,10 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		this.provider = this.serverless.getProvider(config.providerName);
 		this.info = new Info(serverless, options);
 
+		let plugins = this.serverless.pluginManager.getPlugins();
+
+		this.zipService = plugins.filter(plugin => plugin.zipService)[0];
+
 		this.setHooks();
 	}
 
@@ -32,7 +36,11 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		this.provider.loadLocalParamsFile();
 		this._client = this.provider.client.FunctionsService;
 
-		return Promise.resolve();
+		return this.zipService.excludeDevDependencies({exclude: [], include: []}).then(res => {
+			return this.zipService.resolveFilePathsFromPatterns(res).then(res => {
+				this.toExclude = res;
+			});
+		});
 	}
 
 	deploy(funcs){
@@ -80,26 +88,24 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		config.id = localFunc.id;
 		let params = this.buildFunctionParams(name, config);
 
-		return this.getEditedFunc(config.id)
+		return this.getFunction(config.id)
 			.then(func => {
-				if(localFunc.latestVersion == func.latestVersion){
+				if(localFunc.latestVersion === func.latestVersion){
 					return this._client.update({function: params})
-            .then(_ => this.createCron({}, config, localFunc))
+            			.then(_ => this.createCron({}, config, localFunc))
 						.then(res => this.success(res, params, true))
 						// The update call does not return the edited func. so we will get it
-						.then(res => this.getEditedFunc(config.id, res))
+						.then(res => this.getFunction(config.id, res))
 						.catch(err => this.error(err, params));			
 				} else{
 					throw new this.serverless.classes.Error(
-						`Version Error: '${name}' Function has a version '${localFunc.latestVersion}' which does not match the submitted version '${fetchedVersion}'. Please go to your Spotinst console for more information.`
+						`Version Error: '${name}' Function has a version '${localFunc.latestVersion}' which does not match the submitted version '${func.latestVersion}'. Please go to your Spotinst console for more information.`
 					);
 				}
-			})
-
-			.catch(err => this.error(err, params));
+			});
 	}
   
-	getEditedFunc(id, extraParams){
+	getFunction(id, extraParams){
 		let params = utils.extend({id}, this.provider.defaultParams);
 		return this._client.read(params)
 			.then( items => utils.extend(items[0], extraParams || {}));
@@ -118,7 +124,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 				memory: config.memory,
 			},
 			code : {
-				handler: handler,
+				handler: config.handler,
 				source: this.prepareCode(file, config.runtime)
 			}
 		};
@@ -141,23 +147,30 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 	}
 
 	prepareCode(file, runtimeName) {
-		let runtime = config.runtimes[runtimeName];
-
-		let zip = AdmZip();
-		let rootFile = runtime.rootFile;
-		let filePath = `${path.join(this.serverless.config.servicePath, file)}.${runtime.ext}`;
-
-		zip.addLocalFile(filePath, null, rootFile);
-
-		zip.addLocalFolder(this.serverless.config.servicePath, null, p => this.isFileShouldBeInZip(p, file, runtime));
+		let filePath = `${path.join(this.serverless.config.servicePath, config.localPrivateFolder, this.serverless.service.service)}.zip`;
+		let bitmap = fs.readFileSync(filePath);
 
 		// convert binary data to base64 encoded string
-		return new Buffer(zip.toBuffer()).toString('base64');
+		return new Buffer(bitmap).toString('base64');
+
+		// let runtime = config.runtimes[runtimeName];
+		//
+		// let zip = AdmZip();
+		// let rootFile = runtime.rootFile;
+		// let filePath = `${path.join(this.serverless.config.servicePath, file)}.${runtime.ext}`;
+		//
+		// zip.addLocalFile(filePath, null, rootFile);
+		//
+		// zip.addLocalFolder(this.serverless.config.servicePath, null, p => this.isFileShouldBeInZip(p, file, runtime));
+		//
+		// // convert binary data to base64 encoded string
+		// return zip.toBuffer().toString('base64');
 	}
 
 	isFileShouldBeInZip(path, file, runtime){
 		let retVal = true;
 
+		// exclude the root file. we've already included him
 		if(path === `${file}.${runtime.ext}`)
 			retVal = false;
 
@@ -167,8 +180,15 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		if(path.indexOf(config.localPrivateFolder) > -1)
 			retVal = false;
 
-		if(path.indexOf("node_modules") > -1 && runtime.ext !== "js")
+		if(this.toExclude.indexOf(path) > -1)
 			retVal = false;
+
+		if(path.indexOf("serverless-spotinst-functions") > -1)
+			retVal = false;
+
+		// exclude node_modules on node
+		// if(path.indexOf("node_modules") > -1 && runtime.ext !== "js")
+		// 	retVal = false;
 
 		return retVal;
 	}
