@@ -123,6 +123,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 				timeout: config.timeout,
 				memory: config.memory,
 			},
+			environmentVariables: config.environmentVariables,
 			code : {
 				handler: config.handler,
 				source: this.prepareCode(file, config.runtime)
