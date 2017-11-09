@@ -18,10 +18,6 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		this.provider = this.serverless.getProvider(config.providerName);
 		this.info = new Info(serverless, options);
 
-		let plugins = this.serverless.pluginManager.getPlugins();
-
-		this.zipService = plugins.filter(plugin => plugin.zipService)[0];
-
 		this.setHooks();
 	}
 
@@ -35,12 +31,6 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 	init(){
 		this.provider.loadLocalParamsFile();
 		this._client = this.provider.client.FunctionsService;
-
-		return this.zipService.excludeDevDependencies({exclude: [], include: []}).then(res => {
-			return this.zipService.resolveFilePathsFromPatterns(res).then(res => {
-				this.toExclude = res;
-			});
-		});
 	}
 
 	deploy(funcs){
@@ -112,8 +102,19 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 	}
 
 	buildFunctionParams(name, config){
-		let [file, handler] = config.handler.split(".");
 		let runtime = this.getRuntime(config.runtime);
+
+		if(config.timeout % 30 !== 0 || config.timeout > 300){
+			throw new this.serverless.classes.Error(
+				`timeout should be a multiple of 30 and maximum of 300. (${config.timeout} given)`
+			);
+		}
+
+		if(config.memory%64 !== 0 || config.memory < 128 || config.memory > 1536){
+			throw new this.serverless.classes.Error(
+				`memory should be a multiple of 64 with minimum of 128 and maximum of 1536. (${config.memory} given)`
+			);
+		}
 
 		let params = {
 			name: name,
@@ -126,7 +127,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 			environmentVariables: config.environmentVariables,
 			code : {
 				handler: config.handler,
-				source: this.prepareCode(file, config.runtime)
+				source: this.prepareCode()
 			}
 		};
 
@@ -147,51 +148,12 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		return runtime.replace(/\./g, "");
 	}
 
-	prepareCode(file, runtimeName) {
+	prepareCode() {
 		let filePath = `${path.join(this.serverless.config.servicePath, config.localPrivateFolder, this.serverless.service.service)}.zip`;
 		let bitmap = fs.readFileSync(filePath);
 
 		// convert binary data to base64 encoded string
 		return new Buffer(bitmap).toString('base64');
-
-		// let runtime = config.runtimes[runtimeName];
-		//
-		// let zip = AdmZip();
-		// let rootFile = runtime.rootFile;
-		// let filePath = `${path.join(this.serverless.config.servicePath, file)}.${runtime.ext}`;
-		//
-		// zip.addLocalFile(filePath, null, rootFile);
-		//
-		// zip.addLocalFolder(this.serverless.config.servicePath, null, p => this.isFileShouldBeInZip(p, file, runtime));
-		//
-		// // convert binary data to base64 encoded string
-		// return zip.toBuffer().toString('base64');
-	}
-
-	isFileShouldBeInZip(path, file, runtime){
-		let retVal = true;
-
-		// exclude the root file. we've already included him
-		if(path === `${file}.${runtime.ext}`)
-			retVal = false;
-
-		if(path === config.serverlessConfigFile)
-			retVal = false;
-
-		if(path.indexOf(config.localPrivateFolder) > -1)
-			retVal = false;
-
-		if(this.toExclude.indexOf(path) > -1)
-			retVal = false;
-
-		if(path.indexOf("serverless-spotinst-functions") > -1)
-			retVal = false;
-
-		// exclude node_modules on node
-		// if(path.indexOf("node_modules") > -1 && runtime.ext !== "js")
-		// 	retVal = false;
-
-		return retVal;
 	}
 
 	createCron(res, config, localFunc){
