@@ -7,7 +7,7 @@ const LocalFunctionsMapper = require("../utils/localFunctionsMapper");
 
 class SpotinstLogs extends LocalFunctionsMapper {
 	constructor(serverless, options){
-		super()
+		super();
 
 		this.serverless = serverless;
 		this.options = options || {};
@@ -32,71 +32,83 @@ class SpotinstLogs extends LocalFunctionsMapper {
  
 	logs(){
 		let localFuncs = this.getLocalFunctions();
-		let serviceFuncs = utils.cloneDeep(this.serverless.service.functions);
 
-		this.serverless.cli.consoleLog(chalk.yellow.underline('Function Logs:'));
-		utils.forEach(serviceFuncs, (config, name) => {
-			if(localFuncs[this.options.function]){
-				let messages = []
-				let params = this.buildFunctionParams(name, config, localFuncs);
-				this._client.logs({function:params}).then((res)=>{
-					if(res.length==0){
-						messages.push(`No Logs`)
-					}else{
-						for(let index in res){
-							messages.push(`Invoked: ${res[index].updatedAt} UTC`)
-							messages.push(`Invocation ID: ${res[index].invocationId}`)
-							messages.push(`Log Contents: `)
-							let contents = res[index].content
-							for(let index in contents){
-								messages.push(`  ${contents[index].log}`)
-							}
-							messages.push("\n")
-						}
-					}
-					this.serverless.cli.consoleLog(messages.join("\n"))
-				});
-			}else{
-				this.serverless.cli.consoleLog(`    Function Not Found`)
-			}
-		});
+		this.serverless.cli.consoleLog(chalk.yellow.underline('Function Logs'));
+
+		if(localFuncs[this.options.function]){
+			const selectedFunc = localFuncs[this.options.function];
+			let messages = [];
+
+			let params = this.buildFunctionParams(selectedFunc.name, selectedFunc.id);
+			this._client.logs({function:params}).then(res => {
+				if(!(res instanceof Array) || res.length === 0){
+					messages.push(`No Logs`)
+
+				} else {
+					res.forEach(item => {
+						messages.push(`Invoked: ${item.updatedAt} UTC`);
+						messages.push(`Invocation ID: ${item.invocationId}`);
+						messages.push(`Log Contents: `);
+						let contents = item.content;
+
+						if(contents instanceof Array)
+							contents.forEach(content => messages.push(`  ${content.log}`));
+
+						messages.push("\n")
+					});
+				}
+
+				this.serverless.cli.consoleLog(messages.join("\n"))
+			});
+
+		} else {
+			this.serverless.cli.consoleLog(`    Function Not Found`);
+		}
 	}
 
 	// Creating the function parameters that are passed onto the SDK to get the logs
-	buildFunctionParams(name, config, localFuncs){
+	buildFunctionParams(name, id){
 		let params = {
 			name: name,
-			functionId: localFuncs[name].id
+			functionId: id
 		};
-		if(config.id){
-			params.id = config.id;
-		}
+
 		if(this.options.startTime){
 			params.startTime = this.getStartTime(this.options.startTime.toString())
 		}
 		return utils.extend({}, this.provider.defaultParams, params);
 	}
 
-	// Checks the user input for the time enterend and creates a new Data object based on their input
+	// Checks the user input for the time entered and creates a new Date object based on their input
 	getStartTime(userInput){
-		let startTime
-		let timeBase = 0
-		if(userInput.charAt(userInput.length-1)=='m' || userInput.charAt(userInput.length-1)=='M'){
-			timeBase = 60000
-		}else if(userInput.charAt(userInput.length-1)=='h' || userInput.charAt(userInput.length-1)=='H'){
-			timeBase = 3600000
-		}else if(userInput.charAt(userInput.length-1)=='d' || userInput.charAt(userInput.length-1)=='D'){
-			timeBase = 86400000
+		const timeBases = {
+			m: 60000,
+			h: 3600000,
+			d: 86400000
+		};
+
+		const unit = userInput.charAt(userInput.length-1).toLowerCase();
+		let timeBase = false;
+		let time = userInput;
+
+		if(timeBases[unit]){
+			timeBase = timeBases[unit];
+			time = userInput.substring(0, userInput.length-1);
 		}
 
-		if(isNaN(parseInt(userInput.substring(0, userInput.length-1))) || timeBase==0){
+		time = parseInt(time);
+		if(isNaN(time)){
 			throw new this.serverless.classes.Error(`Incorrect Time Syntax`);
-		}else{
-			userInput = parseInt(userInput.substring(0, userInput.length-1))
-			startTime = new Date(Date.now() - userInput*timeBase)
-		}
 
-		return startTime
+		} else {
+			// If the user gave formatted timeframe
+			if(timeBase)
+				return new Date(Date.now() - time*timeBase);
+
+			// If the user gave us a specific timestamp
+			else
+				return new Date(time);
+		}
 	}
 }
 

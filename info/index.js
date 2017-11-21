@@ -39,7 +39,7 @@ class SpotinstInfo extends LocalFunctionsMapper {
 		this.hooks = {
 			'before:info:info': _ => this.init(),
 			'before:deploy:deploy': _ => this.init(),
-			'before:logs:logs': _ => this.init().then(()=>{this.logs()}),
+			'before:logs:logs': _ => this.init().then(_ => this.logs()),
 			'info:info': _ => this.info(),
 			'after:deploy:deploy': _ => this.info()
 		}
@@ -149,13 +149,14 @@ class SpotinstInfo extends LocalFunctionsMapper {
 	}
 
 	logs(){
-		let funcs = this.getSingleFunction()
-		let message = []
+		let funcs = this.getSingleFunction();
+		let message = [];
 
-		funcs.then(item=>{
-			message.push(`${chalk.yellow('Name:')} ${item[0].name}`)
-			message.push(`${chalk.yellow('Function ID:')} ${item[0].id}`)
-			message.push(`${chalk.yellow('Current Version:')} ${item[0].latestVersion}`)
+		funcs.then(item => {
+			message.push(`${chalk.yellow('Name:')} ${item[0].name}`);
+			message.push(`${chalk.yellow('Function ID:')} ${item[0].id}`);
+			message.push(`${chalk.yellow('Current Version:')} ${item[0].latestVersion}`);
+
 			this.serverless.cli.consoleLog(message.join("\n"));
 		})
 	}
