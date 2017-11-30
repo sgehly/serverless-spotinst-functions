@@ -46,13 +46,12 @@ class SpotinstLogs extends LocalFunctionsMapper {
 
 				} else {
 					res.forEach(item => {
-						messages.push(`Invoked: ${item.updatedAt} UTC`);
 						messages.push(`Invocation ID: ${item.invocationId}`);
 						messages.push(`Log Contents: `);
 						let contents = item.content;
 
 						if(contents instanceof Array)
-							contents.forEach(content => messages.push(`  ${content.log}`));
+							contents.forEach(content => messages.push(`  [${content.time}]  ${content.log}`));
 
 						messages.push("\n")
 					});
