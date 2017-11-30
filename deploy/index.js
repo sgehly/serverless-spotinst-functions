@@ -5,7 +5,6 @@ const utils = require("lodash");
 const chalk = require('chalk');
 const fs = require("fs");
 const path = require("path");
-const AdmZip = require("adm-zip");
 const Info = require("../info/index");
 const LocalFunctionsMapper = require("../utils/localFunctionsMapper");
 
@@ -38,7 +37,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 			localFuncs = this.getLocalFunctions(),
 			serviceFuncs = funcs || utils.cloneDeep(this.serverless.service.functions);
 
-		this.serverless.cli.consoleLog(chalk.yellow.underline('Deploy functions:'));
+		this.serverless.cli.consoleLog(chalk.yellow.underline('Deploy functions'));
 
 		utils.forEach(serviceFuncs, (config, name) => {
 			if(localFuncs[name]){
