@@ -43,6 +43,10 @@ class Invoke extends LocalFunctionsMapper {
 				res = this.invokeRuby(this.options.function, func);
 				break;
 
+			case "java":
+				res = this.invokeJava(this.options.function, func);
+				break;
+
 			default:
 				throw new this.serverless.classes.Error(
 					`${func.runtime} is invalid runtime. The available runtimes are ${Object.keys(config.runtimes).join(", ")}`
@@ -84,6 +88,7 @@ class Invoke extends LocalFunctionsMapper {
 	invokeNode() {console.error("Implement 'invokeNode' method")}
 	invokePython() {console.error("Implement 'invokePython' method")}
 	invokeRuby() {console.error("Implement 'invokeRuby' method")}
+	invokeJava() {console.error("Implement 'invokeJava' method")}
 }
 
 module.exports = Invoke;

@@ -126,7 +126,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 			environmentVariables: config.environmentVariables,
 			code : {
 				handler: config.handler,
-				source: this.prepareCode()
+				source: this.prepareCode(runtime)
 			}
 		};
 
@@ -147,8 +147,13 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		return runtime.replace(/\./g, "");
 	}
 
-	prepareCode() {
-		let filePath = `${path.join(this.serverless.config.servicePath, config.localPrivateFolder, this.serverless.service.service)}.zip`;
+	prepareCode(runtime) {
+		let filePath
+		if(runtime == "java8"){
+			filePath = `${path.join(this.serverless.config.servicePath, config.localTargetFolder, this.serverless.service.service)}.jar`
+		}else{
+			filePath = `${path.join(this.serverless.config.servicePath, config.localPrivateFolder, this.serverless.service.service)}.zip`;
+		}
 		let bitmap = fs.readFileSync(filePath);
 
 		// convert binary data to base64 encoded string
