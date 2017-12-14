@@ -28,6 +28,10 @@ class SpotinstInvoke extends Invoke {
 		return this.invokeFunction(name, localFunc);
 	}
 
+	invokeJava(name, localFunc){
+		return this.invokeFunction(name, localFunc);
+	}
+
 	invokeFunction(name, localFunc){
 		return this.getSingleFunction(name)
 			.then(func => {
