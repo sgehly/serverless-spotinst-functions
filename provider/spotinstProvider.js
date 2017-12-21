@@ -6,11 +6,14 @@ const config = require('../config');
 const YAML = require('js-yaml');
 
 class SpotinstProvider {
-	constructor (serverless) {
+	constructor (serverless, options) {
 		this._envVars = {};
 		this._defaultParams = {};
 		this._serverless = serverless;
+		this._options = options;
 		this._client = null;
+
+		this.getStage();
 
 		this._serverless.setProvider(config.providerName, this);
 	}
@@ -60,6 +63,13 @@ class SpotinstProvider {
 		}
 
 		this._defaultParams.environmentId = this._serverless.service.provider.spotinst.environment;
+	}
+
+	getStage(){
+		this._options.stage =
+			this._options.stage ||
+			this._serverless.service.provider.stage ||
+			"dev";
 	}
 
 	get envVars() {

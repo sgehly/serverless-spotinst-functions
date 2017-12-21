@@ -40,8 +40,9 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		this.serverless.cli.consoleLog(chalk.yellow.underline('Deploy functions'));
 
 		utils.forEach(serviceFuncs, (config, name) => {
-			if(localFuncs[name]){
-				calls.push(this.update(name, config, localFuncs[name]));
+			const nameWithStage = `${name}-${this.options.stage}`;
+			if(localFuncs[nameWithStage]){
+				calls.push(this.update(name, config, localFuncs[nameWithStage]));
 
 			} else {
 				calls.push(this.create(name, config));
@@ -49,13 +50,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 		});
 
 		return Promise.all(calls)
-			.then( functions => {
-				if(this.options.function){
-					this.saveInLocal(functions, localFuncs);
-				} else {
-					this.saveInLocal(functions);
-				}
-			});
+			.then( functions => this.saveInLocal(functions, localFuncs));
 	}
 
 	create(name, config){
@@ -69,10 +64,11 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 
 
 	update(name, config, localFunc){
-		if(this.provider.defaultParams.environmentId !== localFunc.environmentId)
+		if(this.provider.defaultParams.environmentId !== localFunc.environmentId){
 			throw new this.serverless.classes.Error(
 				`'${name}' has already been deployed to environment '${localFunc.environmentId}'. This cannot be changed (sent: '${this.provider.defaultParams.environmentId}')`
 			);
+		}
 
 		config.id = localFunc.id;
 		let params = this.buildFunctionParams(name, config);
@@ -148,8 +144,8 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 	}
 
 	prepareCode(runtime) {
-		let filePath
-		if(runtime == "java8"){
+		let filePath;
+		if(runtime === "java8"){
 			filePath = `${path.join(this.serverless.config.servicePath, config.localTargetFolder, this.serverless.service.service)}.jar`
 		}else{
 			filePath = `${path.join(this.serverless.config.servicePath, config.localPrivateFolder, this.serverless.service.service)}.zip`;
@@ -231,8 +227,12 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 	}
 
 	saveInLocal(funcs, localFuncs){
-		let jsonToSave = localFuncs || {};
-		funcs.filter(func => func).forEach(func => jsonToSave[func.name] = func);
+		let jsonToSave = localFuncs;
+
+		funcs.filter(func => func).forEach(func => {
+			func.stage = this.options.stage;
+			jsonToSave[`${func.name}-${func.stage}`] = func;
+		});
 
 		this.updateLocalFunctions(jsonToSave);
 	}
