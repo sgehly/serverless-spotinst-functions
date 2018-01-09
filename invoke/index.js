@@ -52,11 +52,12 @@ class SpotinstInvoke extends Invoke {
 
 				return new Promise((resolve, reject) => {
 					request(options, (error, response, body) => {
+						this.serverless.cli.consoleLog(`Response: (Status Code is ${response.statusCode})\n ${JSON.stringify(body, null, 4)}`);
+
 						if(error || !response || response.statusCode != 200){
-							reject(error || body);
+							resolve(error || body);
 
 						} else {
-							this.serverless.cli.consoleLog(`Response:\n ${JSON.stringify(body, null, 4)}`);
 							resolve(body);
 						}
 					});
@@ -66,12 +67,13 @@ class SpotinstInvoke extends Invoke {
 
 	getSingleFunction(funcName){
 		const funcs = this.getLocalFunctions();
+		const func = funcs[funcName] || funcs[`${funcName}-${this.options.stage}`];
 
-		if(!funcs[funcName]){
+		if(!func){
 			throw new this.serverless.classes.Error(`Function '${this.options.f}' doesn't exist in this service.`);
 		}
 
-		let params = Object.assign({id: funcs[funcName].id}, this.provider.defaultParams);
+		let params = Object.assign({id: func.id}, this.provider.defaultParams);
 
 		return this._client.read(params);
 	}

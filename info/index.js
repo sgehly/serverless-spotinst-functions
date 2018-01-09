@@ -69,12 +69,13 @@ class SpotinstInfo extends LocalFunctionsMapper {
 
 	getSingleFunction(){
 		const funcs = this.getLocalFunctions();
+		const func = funcs[this.options.function] || funcs[`${this.options.function}-${this.options.stage}`];
 
-		if(!funcs[this.options.function]){
+		if(!func){
 			throw new this.serverless.classes.Error(`Function '${this.options.f}' doesn't exist in this service.`);
 		}
 
-		let params = utils.extend({id: funcs[this.options.function].id}, this.provider.defaultParams);
+		let params = utils.extend({id: func.id}, this.provider.defaultParams);
 
 		return this._client.read(params);
 	}
