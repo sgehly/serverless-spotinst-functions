@@ -69,12 +69,13 @@ class SpotinstInfo extends LocalFunctionsMapper {
 
 	getSingleFunction(){
 		const funcs = this.getLocalFunctions();
+		const func = funcs[this.options.function] || funcs[`${this.options.function}-${this.options.stage}`];
 
-		if(!funcs[this.options.function]){
+		if(!func){
 			throw new this.serverless.classes.Error(`Function '${this.options.f}' doesn't exist in this service.`);
 		}
 
-		let params = utils.extend({id: funcs[this.options.function].id}, this.provider.defaultParams);
+		let params = utils.extend({id: func.id}, this.provider.defaultParams);
 
 		return this._client.read(params);
 	}
@@ -87,7 +88,12 @@ class SpotinstInfo extends LocalFunctionsMapper {
 			const params = utils.extend({id: func.id}, this.provider.defaultParams);
 			const call = this._client
 				.read(params)
-				.then( items => items[0]);
+				.then( items => {
+					let res = items[0];
+					res.stage = func.stage;
+
+					return res;
+				});
 
 			calls.push(call);
 		});
@@ -107,7 +113,7 @@ class SpotinstInfo extends LocalFunctionsMapper {
 			calls.push(call);
 		});
 
-		return Promise.all(calls).then(_ => items);
+		return Promise.all(calls).then(_ => items).catch(e => items);
 	}
 
 	logFunctions(funcs){
@@ -132,6 +138,7 @@ class SpotinstInfo extends LocalFunctionsMapper {
 
 		message.push(`  ${func.name}`);
 		message.push(`    id: ${func.id}`);
+		message.push(`    stage: ${func.stage}`);
 		message.push(`    runtime: ${func.runtime}`);
 		message.push(`    memory: ${func.limits.memory}`);
 		message.push(`    timeout: ${func.limits.timeout}`);
