@@ -43,7 +43,6 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 			const nameWithStage = `${name}-${this.options.stage}`;
 			if(localFuncs[nameWithStage]){
 				calls.push(this.update(name, config, localFuncs[nameWithStage]));
-
 			} else {
 				calls.push(this.create(name, config));
 			}
@@ -110,11 +109,39 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 				`memory should be a multiple of 64 with minimum of 128 and maximum of 1536. (${config.memory} given)`
 			);
 		}
+		
+		let totalPercent = 0
+    let highVersionNumber = 0
+    let currentVersion = 0
+		
+    this.getFunction(config.id)
+      .then(func => {currentVersion = func.latestVersion})
+		
+    for (let item in config.activeVersions) {
+      totalPercent += config.activeVersions[item].percentage
+      
+      if (config.activeVersions[item].version !== '$LATEST') {
+        highVersionNumber = Math.max(parseInt(config.activeVersions[item].version), highVersionNumber)
+      }
+    }
+    
+		if (totalPercent !== 100) {
+			throw new this.serverless.classes.Error(
+				`total percent must be exactly 100`
+			)
+		}
+		
+		if (highVersionNumber > currentVersion) {
+			throw new this.serverless.classes.Error(
+				`requested version number (${highVersionNumber}) exceeds highest published version`
+			)
+		}
 
 		let params = {
 			name: name,
 			runtime: runtime,
 			access: config.access || "private",
+      activeVersions: config.activeVersions,
 			limits: {
 				timeout: config.timeout,
 				memory: config.memory,
@@ -125,7 +152,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 				source: this.prepareCode(runtime)
 			}
 		};
-
+		
 		if(config.id){
 			params.id = config.id;
 		}
