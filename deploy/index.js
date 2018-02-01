@@ -133,9 +133,9 @@ class SpotinstDeploy extends LocalFunctionsMapper {
       );
     }
     
-    if(config.memory%64 !== 0 || config.memory < 128 || config.memory > 1536){
+    if(config.memory%64 !== 0 || config.memory < 128 || config.memory > 2496){
       throw new this.serverless.classes.Error(
-        `memory should be a multiple of 64 with minimum of 128 and maximum of 1536. (${config.memory} given)`
+        `memory should be a multiple of 64 with minimum of 128 and maximum of 2496. (${config.memory} given)`
       );
     }
     
