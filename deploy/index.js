@@ -61,7 +61,6 @@ class SpotinstDeploy extends LocalFunctionsMapper {
       .catch(err => this.error(err, params));
   }
   
-  
   update(name, config, localFunc){
     if(this.provider.defaultParams.environmentId !== localFunc.environmentId){
       throw new this.serverless.classes.Error(
@@ -99,16 +98,33 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     let runtime = this.getRuntime(config.runtime);
     let totalPercent = 0
     let highVersionNumber, currentVersionNumber
-  
-    this.getFunction(config.id)
-      .then(func => {currentVersionNumber = func.latestVersion})
-  
-    for (let item in config.activeVersions) {
-      totalPercent += config.activeVersions[item].percentage
     
-      if (config.activeVersions[item].version !== '$LATEST') {
-        highVersionNumber = Math.max(parseInt(config.activeVersions[item].version), highVersionNumber)
-      }
+    if (config.id) {
+      this.getFunction(config.id)
+        .then(func => {
+          currentVersionNumber = func.latestVersion
+          for (let item in config.activeVersions) {
+            totalPercent += config.activeVersions[item].percentage
+        
+            if (config.activeVersions[item].version !== '$LATEST') {
+              highVersionNumber = Math.max(parseInt(config.activeVersions[item].version), highVersionNumber)
+            }
+          }
+      
+          if (config.activeVersions) {
+            if (totalPercent !== 100) {
+              throw new this.serverless.classes.Error(
+                `total percent of activeVersions must be exactly 100`
+              )
+            }
+        
+            if (highVersionNumber > currentVersionNumber) {
+              throw new this.serverless.classes.Error(
+                `requested activeVersions number (${highVersionNumber}) exceeds highest published version`
+              )
+            }
+          }
+        })
     }
     
     if(config.timeout % 30 !== 0 || config.timeout > 300){
@@ -123,23 +139,10 @@ class SpotinstDeploy extends LocalFunctionsMapper {
       );
     }
     
-    if (totalPercent !== 100) {
-      throw new this.serverless.classes.Error(
-        `total percent must be exactly 100`
-      )
-    }
-    
-    if (highVersionNumber > currentVersionNumber) {
-      throw new this.serverless.classes.Error(
-        `requested version number (${highVersionNumber}) exceeds highest published version`
-      )
-    }
-    
     let params = {
       name: name,
       runtime: runtime,
       access: config.access || "private",
-      activeVersions: config.activeVersions,
       limits: {
         timeout: config.timeout,
         memory: config.memory,
@@ -150,9 +153,13 @@ class SpotinstDeploy extends LocalFunctionsMapper {
         source: this.prepareCode(runtime)
       }
     };
-    
+
     if(config.id){
       params.id = config.id;
+    }
+    
+    if(config.activeVersions){
+      params.activeVersions = config.activeVersions;
     }
     
     return utils.extend({}, this.provider.defaultParams, params);
