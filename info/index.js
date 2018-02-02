@@ -39,9 +39,11 @@ class SpotinstInfo extends LocalFunctionsMapper {
 		this.hooks = {
 			'before:info:info': _ => this.init(),
 			'before:deploy:deploy': _ => this.init(),
+			'before:deploy:function:deploy': _ => this.init(),
 			'before:logs:logs': _ => this.init().then(_ => this.logs()),
 			'info:info': _ => this.info(),
-			'after:deploy:deploy': _ => this.info()
+			'after:deploy:deploy': _ => this.info(),
+			'after:deploy:function:deploy': _ => this.info()
 		}
 	}
 
