@@ -98,6 +98,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     let runtime = this.getRuntime(config.runtime);
     let totalPercent = 0
     let highVersionNumber, currentVersionNumber
+    let negative = false
     
     if (config.id) {
       this.getFunction(config.id)
@@ -105,16 +106,25 @@ class SpotinstDeploy extends LocalFunctionsMapper {
           currentVersionNumber = func.latestVersion
           for (let item in config.activeVersions) {
             totalPercent += config.activeVersions[item].percentage
+            if (config.activeVersions[item].version < 0) {
+              negative = true
+            }
         
             if (config.activeVersions[item].version !== '$LATEST') {
               highVersionNumber = Math.max(parseInt(config.activeVersions[item].version), highVersionNumber)
             }
           }
-      
+          
           if (config.activeVersions) {
             if (totalPercent !== 100) {
               throw new this.serverless.classes.Error(
                 `total percent of activeVersions must be exactly 100`
+              )
+            }
+  
+            if (negative) {
+              throw new this.serverless.classes.Error(
+                `version numbers must be positive`
               )
             }
         
