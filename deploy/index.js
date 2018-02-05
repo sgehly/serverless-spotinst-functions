@@ -34,22 +34,34 @@ class SpotinstDeploy extends LocalFunctionsMapper {
   
   deploy(funcs){
     let calls = [],
+        evironmentFunctions = {},
         localFuncs = this.getLocalFunctions(),
         serviceFuncs = funcs || utils.cloneDeep(this.serverless.service.functions);
-    
+
     this.serverless.cli.consoleLog(chalk.yellow.underline('Deploy functions'));
-    
-    utils.forEach(serviceFuncs, (config, name) => {
-      const nameWithStage = `${name}-${this.options.stage}`;
-      if(localFuncs[nameWithStage]){
-        calls.push(this.update(name, config, localFuncs[nameWithStage]));
-      } else {
-        calls.push(this.create(name, config));
+
+    return this.getRemoteFuncs().then((res)=>{
+      for(let i in res){ 
+        evironmentFunctions[res[i].name] = res[i]
       }
-    });
-    
-    return Promise.all(calls)
-      .then( functions => this.saveInLocal(functions, localFuncs));
+
+      utils.forEach(serviceFuncs, (config, name) => {
+        const nameWithStage = `${name}-${this.options.stage}`;
+        if (evironmentFunctions[name]){
+          calls.push(this.update(name, config, evironmentFunctions[name]))
+        }else {
+          calls.push(this.create(name, config));
+        }
+      });
+
+      return Promise.all(calls)
+        .then( functions => this.saveInLocal(functions, localFuncs));
+
+    }).catch((err)=>{
+      throw new this.serverless.classes.Error(
+        `Error Getting Functions`
+      );
+    })
   }
   
   create(name, config){
@@ -94,6 +106,15 @@ class SpotinstDeploy extends LocalFunctionsMapper {
       .then( items => utils.extend(items[0], extraParams || {}));
   }
   
+  getRemoteFuncs(){
+    let params = {
+      environmentId:this.provider.defaultParams.environmentId,
+      accountId:this.provider.defaultParams.accountId
+    }
+
+    return this._client.list(params)
+  }
+
   buildFunctionParams(name, config){
     let runtime = this.getRuntime(config.runtime);
     let totalPercent = 0
