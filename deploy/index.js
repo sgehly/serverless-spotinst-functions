@@ -58,6 +58,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
         .then( functions => this.saveInLocal(functions, localFuncs));
 
     }).catch((err)=>{
+      console.log(err)
       throw new this.serverless.classes.Error(
         `Error Getting Functions`
       );
@@ -65,7 +66,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
   }
   
   create(name, config){
-    let params = this.buildFunctionParams(name, config);
+    let params = this.buildFunctionParams(name, config, null);
     
     return this._client.create({function: params})
       .then(res => this.createCron(res, config))
@@ -81,7 +82,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     }
 
     config.id = localFunc.id;
-    let params = this.buildFunctionParams(name, config);
+    let params = this.buildFunctionParams(name, config, localFunc);
     
     return this.getFunction(config.id)
       .then(func => {
@@ -115,7 +116,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     return this._client.list(params)
   }
 
-  buildFunctionParams(name, config){
+  buildFunctionParams(name, config, envFunction){
     let runtime = this.getRuntime(config.runtime);
     let totalPercent = 0
     let highVersionNumber, currentVersionNumber
@@ -184,7 +185,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
       }
     };
 
-    if(config.environmentVariables || envFunction.environmentVariables){
+    if(envFunction!=null && (config.environmentVariables || envFunction.environmentVariables)){
       let envVars = {}
       //setting variables from yml
       for(let i in config.environmentVariables){
