@@ -67,7 +67,8 @@ class SpotinstDeploy extends LocalFunctionsMapper {
         `'${name}' has already been deployed to environment '${localFunc.environmentId}'. This cannot be changed (sent: '${this.provider.defaultParams.environmentId}')`
       );
     }
-    
+      console.log("localfunc: " + JSON.stringify(localFunc))
+
     config.id = localFunc.id;
     let params = this.buildFunctionParams(name, config);
     
@@ -170,6 +171,10 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     
     if(config.activeVersions){
       params.activeVersions = config.activeVersions;
+    }
+
+    if(config.cors){
+      params.cors = config.cors;
     }
     
     return utils.extend({}, this.provider.defaultParams, params);
