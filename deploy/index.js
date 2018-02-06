@@ -58,6 +58,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
         .then( functions => this.saveInLocal(functions, localFuncs));
 
     }).catch((err)=>{
+      console.log(err)
       throw new this.serverless.classes.Error(
         `Error Getting Functions`
       );
@@ -65,7 +66,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
   }
   
   create(name, config){
-    let params = this.buildFunctionParams(name, config);
+    let params = this.buildFunctionParams(name, config, null);
     
     return this._client.create({function: params})
       .then(res => this.createCron(res, config))
@@ -81,7 +82,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     }
 
     config.id = localFunc.id;
-    let params = this.buildFunctionParams(name, config);
+    let params = this.buildFunctionParams(name, config, localFunc);
     
     return this.getFunction(config.id)
       .then(func => {
@@ -115,7 +116,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     return this._client.list(params)
   }
 
-  buildFunctionParams(name, config){
+  buildFunctionParams(name, config, envFunction){
     let runtime = this.getRuntime(config.runtime);
     let totalPercent = 0
     let highVersionNumber, currentVersionNumber
@@ -178,12 +179,24 @@ class SpotinstDeploy extends LocalFunctionsMapper {
         timeout: config.timeout,
         memory: config.memory,
       },
-      environmentVariables: config.environmentVariables,
       code : {
         handler: config.handler,
         source: this.prepareCode(runtime)
       }
     };
+
+    if(envFunction!=null && (config.environmentVariables || envFunction.environmentVariables)){
+      let envVars = {}
+      //setting variables from yml
+      for(let i in config.environmentVariables){
+        envVars[i] = config.environmentVariables[i]
+      }
+      //setting variables from console
+      for(let i in envFunction.environmentVariables){
+        envVars[i] = envFunction.environmentVariables[i]
+      }
+      params.environmentVariables = envVars
+    }
 
     if(config.id){
       params.id = config.id;
