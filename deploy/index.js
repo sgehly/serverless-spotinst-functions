@@ -178,12 +178,24 @@ class SpotinstDeploy extends LocalFunctionsMapper {
         timeout: config.timeout,
         memory: config.memory,
       },
-      environmentVariables: config.environmentVariables,
       code : {
         handler: config.handler,
         source: this.prepareCode(runtime)
       }
     };
+
+    if(config.environmentVariables || envFunction.environmentVariables){
+      let envVars = {}
+      //setting variables from yml
+      for(let i in config.environmentVariables){
+        envVars[i] = config.environmentVariables[i]
+      }
+      //setting variables from console
+      for(let i in envFunction.environmentVariables){
+        envVars[i] = envFunction.environmentVariables[i]
+      }
+      params.environmentVariables = envVars
+    }
 
     if(config.id){
       params.id = config.id;
