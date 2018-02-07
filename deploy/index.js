@@ -34,33 +34,50 @@ class SpotinstDeploy extends LocalFunctionsMapper {
   
   deploy(funcs){
     let calls = [],
-        evironmentFunctions = {},
+        environmentFunctions = {},
         localFuncs = this.getLocalFunctions(),
         serviceFuncs = funcs || utils.cloneDeep(this.serverless.service.functions);
 
     this.serverless.cli.consoleLog(chalk.yellow.underline('Deploy functions'));
 
-    return this.getRemoteFuncs().then((res)=>{
-      for(let i in res){ 
-        evironmentFunctions[res[i].name] = res[i]
+    // this will get all the functions in the environment 
+    return this.getRemoteFuncs().then((functionsRes)=>{
+      // here we are createing a list of all the functions with their name as the key
+      for(let i in functionsRes){ 
+        environmentFunctions[functionsRes[i].name] = functionsRes[i]
       }
+      // now we need to get the information about each functions endpoint
+      return this.provider.client.EndpointService.Pattern.list(this.provider.defaultParams).then((endpointRes)=>{
+        // here we find information on each funcitons cron expression
+        return this.provider.client.SpectrumService.Events.list(this.provider.defaultParams).then((cronRes)=>{
+          // now we link the cron expression to the appropriate function
+          for(let i in cronRes)
+            for(let j in environmentFunctions)
+              if(cronRes[i].resourceId == environmentFunctions[j].id)
+                environmentFunctions[j].cron = {isEnabled: cronRes[i].isEnabled, cronExpression: cronRes[i].cronExpression, id: cronRes[i].id}
+                        
+          //here we link the endpoint pattern to the funciton
+          for(let i in endpointRes)
+            for(let j in environmentFunctions)
+              if(endpointRes[i].functionId == environmentFunctions[j].id)
+                environmentFunctions[j].endpoint = {pattern:endpointRes[i].pattern, method:endpointRes[i].method, id: endpointRes[i].id}
 
-      utils.forEach(serviceFuncs, (config, name) => {
-        const nameWithStage = `${name}-${this.options.stage}`;
-        if (evironmentFunctions[name]){
-          calls.push(this.update(name, config, evironmentFunctions[name]))
-        }else {
-          calls.push(this.create(name, config));
-        }
-      });
-
-      return Promise.all(calls)
-        .then( functions => this.saveInLocal(functions, localFuncs));
-
+          // now we will send the functions to either update or create depending on if they exsist in the environment
+          utils.forEach(serviceFuncs, (config, name) => {
+            const nameWithStage = `${name}-${this.options.stage}`;
+            if (environmentFunctions[name]){
+              calls.push(this.update(name, config, environmentFunctions[name]))
+            }else {
+              calls.push(this.create(name, config));
+            }
+          });
+          return Promise.all(calls)
+            .then( functions => this.saveInLocal(functions, localFuncs, serviceFuncs));
+        })
+      })
     }).catch((err)=>{
-      console.log(err)
       throw new this.serverless.classes.Error(
-        `Error Getting Functions`
+        `Error Fetching Functions: ${err}`
       );
     })
   }
@@ -70,6 +87,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     
     return this._client.create({function: params})
       .then(res => this.createCron(res, config))
+      .then(res => this.createPattern(res, config))
       .then(res => this.success(res, params))
       .catch(err => this.error(err, params));
   }
@@ -80,7 +98,6 @@ class SpotinstDeploy extends LocalFunctionsMapper {
         `'${name}' has already been deployed to environment '${localFunc.environmentId}'. This cannot be changed (sent: '${this.provider.defaultParams.environmentId}')`
       );
     }
-
     config.id = localFunc.id;
     let params = this.buildFunctionParams(name, config, localFunc);
     
@@ -89,6 +106,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
         if(localFunc.latestVersion === func.latestVersion){
           return this._client.update({function: params})
             .then(_ => this.createCron({}, config, localFunc))
+            .then(res=>this.createPattern({}, config, localFunc))
             .then(res => this.success(res, params, true))
             // The update call does not return the edited func. so we will get it
             .then(res => this.getFunction(config.id, res))
@@ -235,11 +253,52 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     // convert binary data to base64 encoded string
     return new Buffer(bitmap).toString('base64');
   }
+
+  createPattern(res, config, localFunc){
+    if(!config.endpoint && (!localFunc || !localFunc.endpoint))
+      return res;
+
+    let call = Promise.resolve();
+    let endpointRequest = utils.extend({}, this.provider.defaultParams, {"functionId" :config.id});
+    
+    if(config.endpoint){
+      if((!localFunc || !localFunc.endpoint)){
+        //console.log("create endpoint")
+        endpointRequest.functionId = res.id || localFunc.id;
+        endpointRequest.pattern = config.endpoint.path;
+        endpointRequest.method = config.endpoint.method.toUpperCase();
+
+        call = this.provider.client.EndpointService.Pattern.create(endpointRequest);     
+      } else {
+        if(config.endpoint.path != localFunc.endpoint.pattern || config.endpoint.method.toUpperCase() != localFunc.endpoint.method) {
+          //console.log("update endpoint")
+          endpointRequest.pattern = config.endpoint.path;
+          endpointRequest.method =  config.endpoint.method.toUpperCase();
+          endpointRequest.id = localFunc.endpoint.id;
   
+          call = this.provider.client.EndpointService.Pattern.update(endpointRequest)
+        }         
+      }
+    } else {
+        if(localFunc.endpoint){
+          //console.log("delete endpoint")
+          endpointRequest.id = localFunc.endpoint.id; 
+          call = this.provider.client.EndpointService.Pattern.delete(endpointRequest)
+        } 
+    }
+    
+    return call
+      .then(_ => res)
+      .catch(err => {
+        this.error(`function has been created but endpoint fail with error: ${err}`, config);
+        return res;
+      });
+  }
+
   createCron(res, config, localFunc){
     if(!config.cron && (!localFunc || !localFunc.cron))
       return res;
-    
+
     let call = Promise.resolve();
     let cronRequest = utils.extend({}, this.provider.defaultParams, {
       action: "INVOKE_FUNCTION",
@@ -249,55 +308,32 @@ class SpotinstDeploy extends LocalFunctionsMapper {
       }
     });
     
-    if(localFunc){
-      //Update when cron exist
-      if(localFunc.cron && localFunc.cron.id) {
-        cronRequest.id = localFunc.cron.id;
+    if(config.cron){
+      if((!localFunc || !localFunc.cron)){
+        // console.log("create new cron")
+        cronRequest.resourceId = res.id || localFunc.id
+        cronRequest.isEnabled = config.cron.active;
+        cronRequest.cronExpression = config.cron.value;
         
-        // Cron has been deleted from config
-        if(!config.cron){
-          call = this.provider.client.SpectrumService.Events.delete(cronRequest)
-            .then(resCron => delete res.cron);
-          
-        } else {
+        call = this.provider.client.SpectrumService.Events.create(cronRequest) 
+      } else {
+        if(config.cron.active != localFunc.cron.isEnabled || config.cron.value != localFunc.cron.cronExpression) {
+          // console.log("update cron")
           cronRequest.isEnabled = config.cron.active;
           cronRequest.cronExpression = config.cron.value;
+          cronRequest.id = localFunc.cron.id;
           
           call = this.provider.client.SpectrumService.Events.update(cronRequest)
-            .then(resCron => {
-              res.cron = config.cron;
-              res.cron.id = localFunc.cron.id;
-            });
-        }
-        
-        //Update with new cron
-      } else if(config.cron){
-        cronRequest.resourceId = localFunc.id;
-        cronRequest.isEnabled = config.cron.active;
-        cronRequest.cronExpression = config.cron.value;
-        
-        call = this.provider.client.SpectrumService.Events.create(cronRequest)
-          .then(resCron => {
-            res.cron = config.cron;
-            res.cron.id = resCron.id;
-          });
+        }         
       }
-      
     } else {
-      //Create
-      if(config.cron){
-        cronRequest.resourceId = res.id;
-        cronRequest.isEnabled = config.cron.active;
-        cronRequest.cronExpression = config.cron.value;
-        
-        call = this.provider.client.SpectrumService.Events.create(cronRequest)
-          .then(resCron => {
-            res.cron = config.cron;
-            res.cron.id = resCron.id;
-          });
-      }
+        if(localFunc.cron){
+          // console.log("delete cron")
+          cronRequest.id = localFunc.cron.id;
+          call = this.provider.client.SpectrumService.Events.delete(cronRequest)
+        } 
     }
-    
+
     return call
       .then(_ => res)
       .catch(err => {
@@ -306,14 +342,19 @@ class SpotinstDeploy extends LocalFunctionsMapper {
       });
   }
   
-  saveInLocal(funcs, localFuncs){
+  saveInLocal(funcs, localFuncs, serviceFuncs){
     let jsonToSave = localFuncs;
     
     funcs.filter(func => func).forEach(func => {
       func.stage = this.options.stage;
       jsonToSave[`${func.name}-${func.stage}`] = func;
+
+      if(serviceFuncs[func.name].cron)
+        jsonToSave[`${func.name}-${func.stage}`].cron = serviceFuncs[func.name].cron
+      if(serviceFuncs[func.name].endpoint)
+        jsonToSave[`${func.name}-${func.stage}`].endpoint = serviceFuncs[func.name].endpoint
     });
-    
+
     this.updateLocalFunctions(jsonToSave);
   }
   
