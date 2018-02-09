@@ -65,6 +65,7 @@ class SpotinstInfo extends LocalFunctionsMapper {
 		}
 
 		return funcs
+			.then(items => this.getEndpointPatterns(items))
 			.then(items => this.getCronJobs(items))
 			.then(items => this.logFunctions(items));
 	}
@@ -118,6 +119,20 @@ class SpotinstInfo extends LocalFunctionsMapper {
 		return Promise.all(calls).then(_ => items).catch(e => items);
 	}
 
+	getEndpointPatterns(items){
+		let call = this.provider.client.EndpointService.Pattern.list(this.provider.defaultParams)
+			.then((res) => {
+				res.forEach(endpoint => {
+					items.forEach(func => {
+						if(func.id == endpoint.functionId){
+							func.endpoint = endpoint
+						}
+					})
+				})
+			})
+		return Promise.all(call).then(_ => items).catch(e => items);
+	}
+
 	logFunctions(funcs){
 		let messages = [];
 
@@ -152,6 +167,12 @@ class SpotinstInfo extends LocalFunctionsMapper {
 			message.push(`    cron:`);
 			message.push(`      active: ${func.cron.isEnabled}`);
 			message.push(`      value: ${func.cron.cronExpression}`);
+		}
+
+		if(func.endpoint){
+			message.push(`    endpoint:`);
+			message.push(`      path: ${func.endpoint.pattern}`);
+			message.push(`      method: ${func.endpoint.method}`);			
 		}
 
 		return message.join("\n");
