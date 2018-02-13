@@ -3,6 +3,6 @@ node_js:
 - stable
 script:
   - ls -la
-  - sls create -t spotinst-nodejs -p test && cd test
-  - pwd
+  - sls create -t spotinst-nodejs -p ../test
+  - npm link && cd ../test && npm link serverless-spotinst-functions
 
