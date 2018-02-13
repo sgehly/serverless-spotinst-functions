@@ -2,6 +2,7 @@ language: node_js
 node_js:
 - stable
 script:
+  - npm i -g serverless
   - sls create -t spotinst-nodejs -p ../test
   - npm link && cd ../test && npm link serverless-spotinst-functions
   - sls config credentials -p spotinst -t token -a account
