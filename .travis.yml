@@ -1,0 +1,8 @@
+language: node_js
+node_js:
+- stable
+script:
+  - sls create -t spotinst-nodejs -p test && cd test
+  - npm link ../serverless-spotinst-functions && npm link serverless-spotinst-functions
+  - sls config credentials -p spotinst -t <token> -a <account>
+  - cat ~/.spotinst/credentials
