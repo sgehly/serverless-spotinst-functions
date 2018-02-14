@@ -30,12 +30,13 @@ beforeEach(() => {
 // describe a test group
 describe("deploy/index.js tests", () => {
   // describe a specific test
-  it('create', () => {
+  it('create', (done) => {
     assert.equal(1,1);
     console.log("in the create test");
     let serverless = new Serverless();
     console.log(serverless);
     // will return pass/fail with optional message (can be output to logs if you wanna be like that)
+    done();
   });
 });
 
