@@ -22,7 +22,10 @@ const testConfig = { runtime: 'nodejs8.3',
   name: 'Test-Function',
   package: {} };
 
-const Serverless = require('./node_modules/serverless')
+beforeEach(() => {
+  const Serverless = require('./node_modules/serverless')
+});
+
 
 // describe a test group
 describe("deploy/index.js tests", () => {

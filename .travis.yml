@@ -6,6 +6,3 @@ script:
   - npm link && cd ../test && npm link serverless-spotinst-functions
   - npm i serverless -s
   - serverless config credentials -p spotinst -t ${token} -a ${account}
-  - cat ~/.spotinst/credentials
-  - ls
-  - ls ./node_modules
