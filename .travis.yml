@@ -8,4 +8,4 @@ before_script:
   - serverless config credentials -p spotinst -t ${token} -a ${account}
   - cd ../
 script:
-  - npm mocha test
+  - npm test
