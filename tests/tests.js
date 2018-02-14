@@ -23,7 +23,7 @@ const testConfig = { runtime: 'nodejs8.3',
   package: {} };
 
 beforeEach(() => {
-  const Serverless = require('./test/node_modules/serverless')
+  const Serverless = require('../test/node_modules/serverless')
 });
 
 
