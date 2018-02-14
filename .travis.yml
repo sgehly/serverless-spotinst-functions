@@ -7,3 +7,4 @@ script:
   - npm i serverless -s
   - serverless config credentials -p spotinst -t ${token} -a ${account}
   - cat ~/.spotinst/credentials
+  - ls /node_modules
