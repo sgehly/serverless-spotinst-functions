@@ -28,6 +28,7 @@ const Serverless = require('./node_modules/serverless')
 describe("deploy/index.js tests", () => {
   // describe a specific test
   it('create', () => {
+    assert.equal(1,1);
     console.log("in the create test");
     let serverless = new Serverless();
     console.log(serverless);
