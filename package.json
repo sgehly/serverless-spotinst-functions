@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "mocha tests/tests.js"
+    "test": "mocha serverless-spotinst-functions/tests/tests.js"
   },
   "author": "",
   "license": "ISC",
