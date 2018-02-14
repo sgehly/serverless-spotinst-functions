@@ -31,7 +31,7 @@ beforeEach(() => {
 describe("deploy/index.js tests", () => {
   // describe a specific test
   it('create', (done) => {
-    assert.equal(1,1);
+    chai.assert.equal(1,1);
     console.log("in the create test");
     let serverless = new Serverless();
     console.log(serverless);
