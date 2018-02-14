@@ -30,6 +30,8 @@ class SpotinstDeploy extends LocalFunctionsMapper {
   init(){
     this.provider.loadLocalParamsFile();
     this._client = this.provider.client.FunctionsService;
+
+
   }
   
   deploy(funcs){
