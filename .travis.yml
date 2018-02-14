@@ -1,9 +1,13 @@
 language: node_js
 node_js:
-- stable
-script:
+  - stable
+notifications:
+  email: "false"
+before_script:
   - sls create -t spotinst-nodejs -p ../test
   - npm link && cd ../test && npm link serverless-spotinst-functions
   - npm i serverless -s
   - serverless config credentials -p spotinst -t ${token} -a ${account}
-  - cat ~/.spotinst/credentials
+  - cd ../serverless-spotinst-functions
+script:
+  - npm test
