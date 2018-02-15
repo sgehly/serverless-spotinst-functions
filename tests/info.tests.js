@@ -10,6 +10,7 @@ const infoObject = new InfoObject(serverless, {})
 describe("info/index.js tests", () => {
   // describe a specific test
   it('info()', (done) => {
+  	console.log(infoObject.provider)
   	chai.expect(infoObject.init()).to.be.a('string');    
     
     done();
