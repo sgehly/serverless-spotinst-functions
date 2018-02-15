@@ -15,7 +15,7 @@ class SpotinstInfo extends LocalFunctionsMapper {
 		this.provider = this.serverless.getProvider(config.providerName);
 
 		console.log(this.serverless)
-		console.log(this.provider)
+		console.log(this.provider.client)
 
 		this.setCommands();
 		this.setHooks();
