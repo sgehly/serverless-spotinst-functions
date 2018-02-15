@@ -3,7 +3,7 @@ const InfoObject = require('../info/index.js');
 const Serverless = require('serverless');
 const config = require('../config.js');
 
-const serverless = new Serverless();
+const serverless = new Serverless({"servicePath":"test"});
 const infoObject = new InfoObject(serverless, { stage: 'dev', region: "here" })
 
 // describe a test group
