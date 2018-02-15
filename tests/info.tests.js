@@ -16,8 +16,8 @@ describe("info/index.js tests", () => {
   // describe a specific test
   it('init() test', (done) => {
 
-
-  	console.log(indexObject)
+	console.log(serverless.pluginManager.addPlugin(InfoObject));
+  	// console.log(indexObject)
 
   	// console.log(config.providerName)
   	// console.log(infoObject.provider)
