@@ -11,6 +11,8 @@ describe("info/index.js tests", () => {
   // describe a specific test
   it('init() test', (done) => {
   	console.log(config.providerName)
+  	console.log(infoObject.provider)
+  	console.log(infoObject.serverless)
   	console.log(infoObject.info())    
     
     done();
