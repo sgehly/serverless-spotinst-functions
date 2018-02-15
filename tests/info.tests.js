@@ -1,6 +1,7 @@
 const chai = require('chai');
 const InfoObject = require('../info/index.js');
 const Serverless = require('serverless');
+const config = require('../config.js');
 
 const serverless = new Serverless();
 const infoObject = new InfoObject(serverless, {})
