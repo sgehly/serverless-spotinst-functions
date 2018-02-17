@@ -1,6 +1,7 @@
 'use strict';
 
 const expect = require('chai').expect;
+const assert = require('chai').assert;
 const chaiAsPromised = require('chai-as-promised');
 const sinon = require('sinon');
 const path = require('path');
@@ -92,18 +93,15 @@ describe('SpotinstInfo', () => {
       sandbox.restore();
     })
 
-    // it('should get unmatched function then throw error', ()=>{
-    //   spotinstInfo.getLocalFunctions = sandbox.stub(spotinstInfo, 'getLocalFunctions').returns({'Test-dev': { id: 'fx-89d870dc'}});
-    //   spotinstInfo._client.read = sandbox.stub(spotinstInfo._client, 'read').returns(Promise.resolve())
-    //   serverless.classes.Error = sandbox.stub(serverless.classes, "Error").returns(Error("Serverless Error"))
+    it('should get unmatched function then throw error', ()=>{
+      spotinstInfo.getLocalFunctions = sandbox.stub(spotinstInfo, 'getLocalFunctions').returns({'Test-dev': { id: 'fx-89d870dc'}});
+      spotinstInfo._client.read = sandbox.stub(spotinstInfo._client, 'read').returns(Promise.resolve())
+      serverless.classes.Error = sandbox.stub(serverless.classes, "Error").returns(Error("Serverless Error"))
 
-    //   try{
-    //     spotinstInfo.getSingleFunction()
-    //   }catch(err){
-    //     expect(err.toString()).to.be.deep.equal(Error("Serverless Error").toString())
-    //   }
-    //   sandbox.restore();
-    // })
+      assert.throws(()=> {spotinstInfo.getSingleFunction()},Error,`Serverless Error`);
+      
+      sandbox.restore();
+    })
   })
 
   describe('#getAllFunctions()', ()=>{
