@@ -80,6 +80,7 @@ describe('SpotinstInfo', () => {
     })    
   })
 
+  //TODO: Check for thrown Errors
   describe('#getSingleFunction()', ()=>{
     sandbox = sinon.sandbox.create();
     it('should get function and make API call', ()=>{
