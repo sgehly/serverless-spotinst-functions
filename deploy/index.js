@@ -30,8 +30,6 @@ class SpotinstDeploy extends LocalFunctionsMapper {
   init(){
     this.provider.loadLocalParamsFile();
     this._client = this.provider.client.FunctionsService;
-
-
   }
   
   deploy(funcs){
@@ -75,9 +73,17 @@ class SpotinstDeploy extends LocalFunctionsMapper {
           });
           return Promise.all(calls)
             .then( functions => this.saveInLocal(functions, localFuncs, serviceFuncs));
-        })
+        }).catch((err)=>{
+        throw new this.serverless.classes.Error(
+          `Error Fetching Cron: ${err}`)
+      })
+      }).catch((err)=>{
+        console.log(err)
+        throw new this.serverless.classes.Error(
+          `Error Fetching Endpoints: ${err}`)
       })
     }).catch((err)=>{
+      console.log(err)
       throw new this.serverless.classes.Error(
         `Error Fetching Functions: ${err}`
       );
