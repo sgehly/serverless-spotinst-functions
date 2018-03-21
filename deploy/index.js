@@ -44,25 +44,25 @@ class SpotinstDeploy extends LocalFunctionsMapper {
 
     // this will get all the functions in the environment 
     return this.getRemoteFuncs().then((functionsRes)=>{
-      // here we are createing a list of all the functions with their name as the key
+      // here we are creating a list of all the functions with their name as the key
       for(let i in functionsRes){ 
         environmentFunctions[functionsRes[i].name] = functionsRes[i]
       }
       // now we need to get the information about each functions endpoint
       return this.provider.client.EndpointService.Pattern.list(this.provider.defaultParams).then((endpointRes)=>{
-        // here we find information on each funcitons cron expression
+        // here we find information on each functions cron expression
         return this.provider.client.SpectrumService.Events.list(this.provider.defaultParams).then((cronRes)=>{
           // now we link the cron expression to the appropriate function
           for(let i in cronRes)
             for(let j in environmentFunctions)
               if(cronRes[i].resourceId == environmentFunctions[j].id)
-                environmentFunctions[j].cron = {isEnabled: cronRes[i].isEnabled, cronExpression: cronRes[i].cronExpression, id: cronRes[i].id}
+                environmentFunctions[j].cron = {isEnabled: cronRes[i].isEnabled, cronExpression: cronRes[i].cronExpression, id: cronRes[i].id};
                         
-          //here we link the endpoint pattern to the funciton
+          //here we link the endpoint pattern to the function
           for(let i in endpointRes)
             for(let j in environmentFunctions)
               if(endpointRes[i].functionId == environmentFunctions[j].id)
-                environmentFunctions[j].endpoint = {pattern:endpointRes[i].pattern, method:endpointRes[i].method, id: endpointRes[i].id}
+                environmentFunctions[j].endpoint = {pattern:endpointRes[i].pattern, method:endpointRes[i].method, id: endpointRes[i].id};
 
           // now we will send the functions to either update or create depending on if they exsist in the environment
           utils.forEach(serviceFuncs, (config, name) => {
@@ -131,23 +131,23 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     let params = {
       environmentId:this.provider.defaultParams.environmentId,
       accountId:this.provider.defaultParams.accountId
-    }
+    };
 
     return this._client.list(params)
   }
 
   buildFunctionParams(name, config, envFunction){
     let runtime = this.getRuntime(config.runtime);
-    let totalPercent = 0
-    let highVersionNumber, currentVersionNumber
-    let negative = false
+    let totalPercent = 0;
+    let highVersionNumber, currentVersionNumber;
+    let negative = false;
     
     if (config.id) {
       this.getFunction(config.id)
         .then(func => {
-          currentVersionNumber = func.latestVersion
+          currentVersionNumber = func.latestVersion;
           for (let item in config.activeVersions) {
-            totalPercent += config.activeVersions[item].percentage
+            totalPercent += config.activeVersions[item].percentage;
             if (config.activeVersions[item].version < 0) {
               negative = true
             }
@@ -204,9 +204,14 @@ class SpotinstDeploy extends LocalFunctionsMapper {
         source: this.prepareCode(runtime)
       }
     };
-
+    
+    params.id = config.id;
+    params.cors = config.cors || { enabled: false };
+    params.iamRoleConfig = config.iamRoleConfig || null;
+    params.activeVersions = config.activeVersions || [ { version: '$LATEST', percentage: 100 } ];
+    
     if(envFunction!=null && (config.environmentVariables || envFunction.environmentVariables)){
-      let envVars = {}
+      let envVars = {};
       //setting variables from yml
       for(let i in config.environmentVariables){
         envVars[i] = config.environmentVariables[i]
@@ -216,18 +221,6 @@ class SpotinstDeploy extends LocalFunctionsMapper {
         envVars[i] = envFunction.environmentVariables[i]
       }
       params.environmentVariables = envVars
-    }
-
-    if(config.id){
-      params.id = config.id;
-    }
-    
-    if(config.activeVersions){
-      params.activeVersions = config.activeVersions;
-    }
-
-    if(config.cors){
-      params.cors = config.cors;
     }
     
     return utils.extend({}, this.provider.defaultParams, params);
@@ -248,7 +241,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     if(runtime === "java8"){
       filePath = `${path.join(this.serverless.config.servicePath, config.localTargetFolder, this.serverless.service.service)}.jar`
     }else{
-      filePath = `${path.join(this.serverless.config.servicePath, config.localPrivateFolder, this.serverless.service.service)}.zip`;
+      filePath = `${path.join(this.serverless.config.servicePath, config.localPrivateFolder, this.serverless.service.service)}.zip`
     }
     let bitmap = fs.readFileSync(filePath);
     
@@ -265,7 +258,6 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     
     if(config.endpoint){
       if((!localFunc || !localFunc.endpoint)){
-        //console.log("create endpoint")
         endpointRequest.functionId = res.id || localFunc.id;
         endpointRequest.pattern = config.endpoint.path;
         endpointRequest.method = config.endpoint.method.toUpperCase();
@@ -273,7 +265,6 @@ class SpotinstDeploy extends LocalFunctionsMapper {
         call = this.provider.client.EndpointService.Pattern.create(endpointRequest);     
       } else {
         if(config.endpoint.path != localFunc.endpoint.pattern || config.endpoint.method.toUpperCase() != localFunc.endpoint.method) {
-          //console.log("update endpoint")
           endpointRequest.pattern = config.endpoint.path;
           endpointRequest.method =  config.endpoint.method.toUpperCase();
           endpointRequest.id = localFunc.endpoint.id;
@@ -283,8 +274,7 @@ class SpotinstDeploy extends LocalFunctionsMapper {
       }
     } else {
         if(localFunc.endpoint){
-          //console.log("delete endpoint")
-          endpointRequest.id = localFunc.endpoint.id; 
+          endpointRequest.id = localFunc.endpoint.id;
           call = this.provider.client.EndpointService.Pattern.delete(endpointRequest)
         } 
     }
@@ -312,15 +302,13 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     
     if(config.cron){
       if((!localFunc || !localFunc.cron)){
-        // console.log("create new cron")
-        cronRequest.resourceId = res.id || localFunc.id
+        cronRequest.resourceId = res.id || localFunc.id;
         cronRequest.isEnabled = config.cron.active;
         cronRequest.cronExpression = config.cron.value;
         
         call = this.provider.client.SpectrumService.Events.create(cronRequest) 
       } else {
         if(config.cron.active != localFunc.cron.isEnabled || config.cron.value != localFunc.cron.cronExpression) {
-          // console.log("update cron")
           cronRequest.isEnabled = config.cron.active;
           cronRequest.cronExpression = config.cron.value;
           cronRequest.id = localFunc.cron.id;
@@ -330,7 +318,6 @@ class SpotinstDeploy extends LocalFunctionsMapper {
       }
     } else {
         if(localFunc.cron){
-          // console.log("delete cron")
           cronRequest.id = localFunc.cron.id;
           call = this.provider.client.SpectrumService.Events.delete(cronRequest)
         } 
