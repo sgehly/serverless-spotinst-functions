@@ -30,6 +30,8 @@ class SpotinstDeploy extends LocalFunctionsMapper {
   init(){
     this.provider.loadLocalParamsFile();
     this._client = this.provider.client.FunctionsService;
+
+
   }
   
   deploy(funcs){
@@ -207,19 +209,22 @@ class SpotinstDeploy extends LocalFunctionsMapper {
     params.cors = config.cors || { enabled: false };
     params.iamRoleConfig = config.iamRoleConfig || null;
     params.activeVersions = config.activeVersions || [ { version: '$LATEST', percentage: 100 } ];
-    
-    if(envFunction!=null && (config.environmentVariables || envFunction.environmentVariables)){
-      let envVars = {};
+
+    let envVars = {};
+    if(config.environmentVariables){
       //setting variables from yml
       for(let i in config.environmentVariables){
         envVars[i] = config.environmentVariables[i]
       }
+    }
+
+    if(envFunction && envFunction.environmentVariables){
       //setting variables from console
       for(let i in envFunction.environmentVariables){
         envVars[i] = envFunction.environmentVariables[i]
       }
-      params.environmentVariables = envVars
     }
+    params.environmentVariables = envVars
     
     return utils.extend({}, this.provider.defaultParams, params);
   }
