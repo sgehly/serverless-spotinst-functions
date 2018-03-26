@@ -13,8 +13,6 @@ class SpotinstDeployFunction extends Deploy {
 	    this.pkg = serverless.pluginManager.getPlugins().find(is_package_plugin);
 
 	    this.infoObject = new Info(serverless, options)
-
-	    if(this.options.function) this.serverless.service.package.individually = true
 	}
 
 	setHooks(){
