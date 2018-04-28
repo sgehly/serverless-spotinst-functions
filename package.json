@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "author": "",
+  "repository": "spotinst/serverless-spotinst-functions",
   "license": "ISC",
   "dependencies": {
     "adm-zip": "^0.4.7",
