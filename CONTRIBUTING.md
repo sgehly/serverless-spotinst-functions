@@ -11,7 +11,7 @@ If you submit a pull request, please keep the following guidelines in mind:
 Run:
 
 ```sh
-git clone git@github.com:spotinst/spotinst-sdk-nodejs.git
+git clone git@github.com:spotinst/spotinst-serverless-functions.git
 ```
 
 ## Running tests
