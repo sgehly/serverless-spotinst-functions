@@ -49,12 +49,14 @@ class SpotinstProvider {
 		const creds = this._serverless.utils.readFileSync(credsPath);
 		const credsParsed = YAML.load(creds.toString(), { filename: credsPath });
 
-		if(!credsParsed.default.account || !credsParsed.default.token){
+		const profile = this._serverless.service.provider.spotinst.profile || "default";
+
+		if(!credsParsed[profile].account || !credsParsed[profile].token){
 			throw new this._serverless.classes.Error(`Please run 'serverless config credentials' first`);
 		}
 
-		this._defaultParams.accountId = credsParsed.default.account;
-		this._envVars.SPOTINST_TOKEN = credsParsed.default.token;
+		this._defaultParams.accountId = credsParsed[profile].account;
+		this._envVars.SPOTINST_TOKEN = credsParsed[profile].token;
 	}
 
 	validateParams(){
